@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cocoparenting">
+<meta name="theme-color" content="#3b82f6">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Cole Holbrook</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,6 +79,16 @@
   .custodian-banner .name { font-size: 1.6rem; font-weight: 800; }
   .custodian-banner.scott .name { color: var(--scott); }
   .custodian-banner.mom .name { color: var(--mom); }
+  .custodian-banner .age { font-size: .78rem; color: var(--muted); margin-top: 4px; font-weight: 600; }
+
+  /* ── Handoff card ── */
+  .handoff-card { background: #fffbeb; border: 2px solid #fbbf24; border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; }
+  .handoff-card .handoff-title { font-size: .8rem; font-weight: 700; color: #92400e; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .handoff-card .handoff-sub { font-size: .85rem; color: #78350f; margin-bottom: 10px; }
+  .handoff-note-text { font-size: .9rem; line-height: 1.5; color: var(--text); background: #fff; border: 1px solid #fde68a; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+  .handoff-input { width: 100%; border: 1.5px solid #fbbf24; border-radius: 8px; padding: 9px 12px; font-size: .9rem; font-family: inherit; outline: none; background: #fff; margin-bottom: 8px; resize: none; min-height: 64px; }
+  .handoff-input:focus { border-color: #f59e0b; }
+  .btn-handoff { background: #f59e0b; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: .85rem; font-weight: 700; cursor: pointer; }
 
   .section-title { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
 
@@ -256,17 +271,11 @@
       <div id="today-banner" class="custodian-banner scott">
         <div class="label">Cole is with</div>
         <div class="name" id="today-custodian-name">–</div>
+        <div class="age" id="cole-age"></div>
       </div>
 
-      <!-- Pinned notes -->
-      <div id="pinned-section">
-        <div class="section-title">📌 Shared Notes</div>
-        <div class="pin-add-row">
-          <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
-          <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
-        </div>
-        <div id="pinned-list"></div>
-      </div>
+      <!-- Handoff note (transfer days only) -->
+      <div id="handoff-section" style="display:none"></div>
 
       <div class="section-title">Quick add</div>
       <div class="quick-add-row">
@@ -284,6 +293,16 @@
           <button type="button" class="btn-cancel" onclick="closeLogForm()">Cancel</button>
           <button type="button" class="btn-save" onclick="submitLog()">Save</button>
         </div>
+      </div>
+
+      <!-- Pinned notes -->
+      <div id="pinned-section">
+        <div class="section-title">📌 Shared Notes</div>
+        <div class="pin-add-row">
+          <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
+          <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
+        </div>
+        <div id="pinned-list"></div>
       </div>
 
       <div class="section-title" id="today-entries-label">Today's log</div>
@@ -380,7 +399,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, addDoc, deleteDoc, doc,
+import { getFirestore, collection, addDoc, setDoc, deleteDoc, doc,
   query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp,
   writeBatch }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -433,6 +452,24 @@ function dateStrOffset(days) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function coleAge() {
+  const birth = new Date('2023-11-22');
+  const now = new Date();
+  let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months--;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (years === 0) return `${rem} months old`;
+  return rem === 0 ? `${years} year${years > 1 ? 's' : ''} old` : `${years} yr ${rem} mo old`;
+}
+
+function isTransferDay(ds) {
+  const d = new Date(ds + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  const yesterday = dateToStr(d);
+  return custodianForDate(ds) !== custodianForDate(yesterday);
+}
+
 // ── State ──
 let currentUser = null;
 let currentUsername = null;
@@ -449,6 +486,7 @@ let selectedDate = null;
 let lastLogVisitTs = parseInt(localStorage.getItem('lastLogVisit') || '0');
 let pendingDelete = null;
 let pinnedUnsubscribe = null;
+let handoffUnsubscribe = null;
 let deferredPrompt = null;
 
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstallPrompt(); });
@@ -502,6 +540,7 @@ onAuthStateChanged(auth, user => {
     if (todayUnsubscribe) { todayUnsubscribe(); todayUnsubscribe = null; }
     if (calUnsubscribe) { calUnsubscribe(); calUnsubscribe = null; }
     if (pinnedUnsubscribe) { pinnedUnsubscribe(); pinnedUnsubscribe = null; }
+    if (handoffUnsubscribe) { handoffUnsubscribe(); handoffUnsubscribe = null; }
   }
 });
 
@@ -509,6 +548,7 @@ function initApp() {
   renderToday();
   subscribeCalendarEvents();
   subscribePinnedNotes();
+  subscribeHandoff();
   renderCalendar();
   showInstallPrompt();
 }
@@ -535,6 +575,37 @@ function subscribePinnedNotes() {
       .sort((a, b) => (b.ts?.seconds || 0) - (a.ts?.seconds || 0));
     renderPinnedNotes(notes);
   }, () => {});
+}
+
+function subscribeHandoff() {
+  if (handoffUnsubscribe) handoffUnsubscribe();
+  const today = todayStr();
+  if (!isTransferDay(today)) {
+    document.getElementById('handoff-section').style.display = 'none';
+    return;
+  }
+  const incoming = custodianForDate(today);
+  handoffUnsubscribe = onSnapshot(
+    query(collection(db, 'handoff_notes'), where('date', '==', today)),
+    snap => renderHandoff(snap.docs.map(d => ({ id: d.id, ...d.data() })), today, incoming),
+    () => {}
+  );
+}
+
+function renderHandoff(notes, today, incoming) {
+  const section = document.getElementById('handoff-section');
+  const existing = notes[0] || null;
+  const incomingName = displayName(incoming);
+  const outgoingName = displayName(incoming === 'scott' ? 'mom' : 'scott');
+  section.style.display = 'block';
+  section.innerHTML = `
+    <div class="handoff-card">
+      <div class="handoff-title">🔄 Transfer Day</div>
+      <div class="handoff-sub">Cole moves to ${incomingName} today — ${outgoingName}, leave a handoff note below.</div>
+      ${existing ? `<div class="handoff-note-text"><strong>${displayName(existing.author)}:</strong> ${escHtml(existing.text)}</div>` : ''}
+      <textarea class="handoff-input" id="handoff-input" placeholder="What to know: mood, medicine given, what's packed…">${existing && existing.author === currentUsername ? escHtml(existing.text) : ''}</textarea>
+      <button type="button" class="btn-handoff" data-action="handoff-save" data-date="${today}">Save note</button>
+    </div>`;
 }
 
 function renderPinnedNotes(notes) {
@@ -599,6 +670,7 @@ function renderToday() {
   const banner = document.getElementById('today-banner');
   banner.className = `custodian-banner ${cust}`;
   document.getElementById('today-custodian-name').textContent = displayName(cust);
+  document.getElementById('cole-age').textContent = coleAge();
   document.getElementById('today-entries-label').textContent = `Today's log — ${formatDate(today)}`;
 
   if (todayUnsubscribe) todayUnsubscribe();
@@ -677,7 +749,7 @@ window.submitLog = async function() {
     const writes = [addDoc(collection(db, 'log_entries'), entry)];
     if (savedType === 'health') {
       writes.push(addDoc(collection(db, 'calendar_events'), {
-        date: todayStr(), title: `💊 ${text}`,
+        date: todayStr(), title: `💊 ${text}`, isHealthLog: true,
         author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
       }));
     }
@@ -720,7 +792,15 @@ document.addEventListener('click', function(e) {
   if (action) {
     e.stopPropagation();
     const act = action.dataset.action;
-    if (act === 'pin-add') {
+    if (act === 'handoff-save') {
+      const input = document.getElementById('handoff-input');
+      const text = input ? input.value.trim() : '';
+      if (!text) return;
+      const date = action.dataset.date || todayStr();
+      setDoc(doc(db, 'handoff_notes', date), {
+        date, text, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
+      }).then(() => showToast('Handoff note saved ✓')).catch(() => showToast('Could not save note'));
+    } else if (act === 'pin-add') {
       const input = document.getElementById('pin-input');
       const text = input.value.trim();
       if (!text) return;
@@ -864,7 +944,7 @@ window.openDayPanel = async function(ds) {
       .sort((a,b) => (a.ts?.seconds||0) - (b.ts?.seconds||0));
 
     let html = '';
-    events.forEach(ev => {
+    events.filter(ev => !ev.isHealthLog).forEach(ev => {
       const canDelete = ev.author === currentUsername;
       html += `<div class="entry-card"><div class="entry-header">
         <span class="entry-type-badge badge-milestone">📅 Event</span>
