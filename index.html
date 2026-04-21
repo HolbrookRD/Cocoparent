@@ -657,24 +657,22 @@ document.addEventListener('click', function(e) {
 });
 
 window.confirmDeleteOne = async function() {
+  const pd = pendingDelete;
   closeDeleteModal();
-  if (!pendingDelete) return;
-  const { id, col, card } = pendingDelete;
-  pendingDelete = null;
-  if (card) card.remove();
-  deleteEntry(id, col);
+  if (!pd) return;
+  if (pd.card) pd.card.remove();
+  deleteEntry(pd.id, pd.col);
 };
 
 window.confirmDeleteAll = async function() {
+  const pd = pendingDelete;
   closeDeleteModal();
-  if (!pendingDelete) return;
-  const { allIds } = pendingDelete;
-  pendingDelete = null;
+  if (!pd) return;
   try {
     const batch = writeBatch(db);
-    allIds.forEach(eid => batch.delete(doc(db, 'calendar_events', eid)));
+    pd.allIds.forEach(eid => batch.delete(doc(db, 'calendar_events', eid)));
     await batch.commit();
-    showToast(`Removed ${allIds.length} events ✓`);
+    showToast(`Removed ${pd.allIds.length} events ✓`);
     const panel = document.getElementById('day-panel');
     if (selectedDate && panel.classList.contains('open')) openDayPanel(selectedDate);
   } catch(e) {
