@@ -118,10 +118,10 @@
   #view-calendar {
     padding: 8px;
     height: 100%;
-    display: flex;
     flex-direction: column;
     overflow: hidden;
   }
+  #view-calendar.active { display: flex; }
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-shrink: 0; }
   .cal-nav h2 { font-size: 1.05rem; font-weight: 700; }
   .cal-arrow { background: none; border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 1rem; cursor: pointer; }
@@ -332,7 +332,8 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, addDoc, deleteDoc, doc,
-  query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp }
+  query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp,
+  writeBatch }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -747,9 +748,13 @@ window.submitEvent = async function() {
       for (let yr = 0; yr < 3; yr++) dates.push(dateToStr(new Date(y+yr, m-1, day)));
     }
 
-    await Promise.all(dates.map(ds => addDoc(collection(db, 'calendar_events'), {
-      date: ds, title, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
-    })));
+    const batch = writeBatch(db);
+    dates.forEach(ds => {
+      batch.set(doc(collection(db, 'calendar_events')), {
+        date: ds, title, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
+      });
+    });
+    await batch.commit();
 
     const labels = { none: 'Note saved ✓', daily: '7 days saved ✓', weekly: '12 weeks saved ✓', biweekly: '13 bi-weekly saved ✓', monthly: '12 months saved ✓', annually: '3 years saved ✓' };
     showToast(labels[repeatVal] || 'Saved ✓');
