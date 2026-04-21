@@ -100,6 +100,7 @@
   .badge-mood { background: #ede9fe; color: #6d28d9; }
   .badge-packed { background: #d1fae5; color: #065f46; }
   .badge-milestone { background: #fce7f3; color: #9d174d; }
+  .badge-health { background: #ccfbf1; color: #0f766e; }
   .entry-author { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
   .author-scott { background: var(--scott-light); color: var(--scott); }
   .author-mom { background: var(--mom-light); color: var(--mom); }
@@ -109,10 +110,27 @@
   .btn-delete { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .8rem; padding: 2px 6px; border-radius: 4px; margin-left: auto; opacity: .6; }
   .btn-delete:hover { opacity: 1; color: var(--mom); }
 
+  /* ── Pinned notes ── */
+  #pinned-section { margin-bottom: 20px; }
+  .pin-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .pin-add-row input { flex: 1; border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: .9rem; outline: none; }
+  .pin-add-row input:focus { border-color: #0d9488; }
+  .btn-pin { background: #0d9488; color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: .85rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .pin-card { background: var(--surface); border-left: 4px solid #0d9488; border-radius: 0 10px 10px 0; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; }
+  .pin-card-text { flex: 1; font-size: .9rem; line-height: 1.5; }
+  .pin-card-meta { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+
   /* ── Upcoming events ── */
   .upcoming-item { background: var(--surface); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; }
   .upcoming-date { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 48px; padding-top: 1px; }
   .upcoming-title { font-size: .9rem; line-height: 1.4; }
+
+  /* ── Install banner ── */
+  #install-banner { background: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 10px 16px; display: none; align-items: center; gap: 10px; flex-shrink: 0; }
+
+  /* ── Health link ── */
+  .health-link { display: block; width: 100%; background: none; border: none; color: var(--muted); font-size: .85rem; font-weight: 600; padding: 4px 0 20px; cursor: pointer; text-align: center; }
+  .health-link:active { opacity: .6; }
 
   /* ── Calendar view — full-screen fill ── */
   #view-calendar {
@@ -224,12 +242,30 @@
     </div>
   </div>
 
+  <!-- Install banner -->
+  <div id="install-banner">
+    <span style="font-size:1.3rem">📲</span>
+    <span id="install-banner-text" style="flex:1;font-size:.85rem;color:#166534;font-weight:600"></span>
+    <button data-action="install-app" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;display:none" id="install-btn">Install</button>
+    <button data-action="install-dismiss" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:2px 6px">✕</button>
+  </div>
+
   <div id="content">
     <!-- Today view -->
     <div class="view active" id="view-today">
       <div id="today-banner" class="custodian-banner scott">
         <div class="label">Cole is with</div>
         <div class="name" id="today-custodian-name">–</div>
+      </div>
+
+      <!-- Pinned notes -->
+      <div id="pinned-section">
+        <div class="section-title">📌 Shared Notes</div>
+        <div class="pin-add-row">
+          <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
+          <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
+        </div>
+        <div id="pinned-list"></div>
       </div>
 
       <div class="section-title">Quick add</div>
@@ -239,6 +275,7 @@
         <button type="button" class="quick-btn" onclick="openLogForm('packed')"><span class="icon">🎒</span> Packed / Left</button>
         <button type="button" class="quick-btn" onclick="openLogForm('milestone')"><span class="icon">⭐</span> Milestone</button>
       </div>
+      <button type="button" class="health-link" onclick="openLogForm('health')">💊 Log medicine or health note</button>
 
       <div class="log-form" id="log-form">
         <h3 id="log-form-title">Add entry</h3>
@@ -276,6 +313,7 @@
         <button type="button" class="chip" data-type="mood" onclick="setFilter('mood',this)">😊 Mood</button>
         <button type="button" class="chip" data-type="packed" onclick="setFilter('packed',this)">🎒 Packed</button>
         <button type="button" class="chip" data-type="milestone" onclick="setFilter('milestone',this)">⭐ Milestones</button>
+        <button type="button" class="chip" data-type="health" onclick="setFilter('health',this)">💊 Health</button>
       </div>
       <div id="log-entries"></div>
       <button type="button" class="load-more" id="btn-load-more" onclick="loadMoreLog()" style="display:none">Load more</button>
@@ -410,6 +448,10 @@ let openLogType = null;
 let selectedDate = null;
 let lastLogVisitTs = parseInt(localStorage.getItem('lastLogVisit') || '0');
 let pendingDelete = null;
+let pinnedUnsubscribe = null;
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstallPrompt(); });
 
 // ── Auth ──
 document.getElementById('btn-login').addEventListener('click', async () => {
@@ -459,13 +501,55 @@ onAuthStateChanged(auth, user => {
     document.getElementById('app').classList.remove('visible');
     if (todayUnsubscribe) { todayUnsubscribe(); todayUnsubscribe = null; }
     if (calUnsubscribe) { calUnsubscribe(); calUnsubscribe = null; }
+    if (pinnedUnsubscribe) { pinnedUnsubscribe(); pinnedUnsubscribe = null; }
   }
 });
 
 function initApp() {
   renderToday();
   subscribeCalendarEvents();
+  subscribePinnedNotes();
   renderCalendar();
+  showInstallPrompt();
+}
+
+function showInstallPrompt() {
+  if (localStorage.getItem('installDismissed')) return;
+  const isIOS = /iphone|ipad/i.test(navigator.userAgent) && !navigator.standalone;
+  const banner = document.getElementById('install-banner');
+  if (isIOS) {
+    document.getElementById('install-banner-text').textContent = "Tap Share → 'Add to Home Screen' to install";
+    banner.style.display = 'flex';
+  } else if (deferredPrompt) {
+    document.getElementById('install-banner-text').textContent = 'Install Cocoparenting as an app';
+    document.getElementById('install-btn').style.display = 'block';
+    banner.style.display = 'flex';
+  }
+}
+
+function subscribePinnedNotes() {
+  if (pinnedUnsubscribe) pinnedUnsubscribe();
+  pinnedUnsubscribe = onSnapshot(collection(db, 'pinned_notes'), snap => {
+    const notes = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.ts?.seconds || 0) - (a.ts?.seconds || 0));
+    renderPinnedNotes(notes);
+  }, () => {});
+}
+
+function renderPinnedNotes(notes) {
+  const list = document.getElementById('pinned-list');
+  if (!notes.length) { list.innerHTML = ''; return; }
+  list.innerHTML = notes.map(n => {
+    const canDelete = n.author === currentUsername;
+    return `<div class="pin-card">
+      <div style="flex:1">
+        <div class="pin-card-text">${escHtml(n.text)}</div>
+        <div class="pin-card-meta">📌 ${displayName(n.author)}</div>
+      </div>
+      ${canDelete ? `<button type="button" class="btn-delete" data-del-id="${n.id}" data-del-col="pinned_notes">✕</button>` : ''}
+    </div>`;
+  }).join('');
 }
 
 function subscribeCalendarEvents() {
@@ -569,7 +653,7 @@ function renderUpcomingEvents() {
 
 window.openLogForm = function(type) {
   openLogType = type;
-  const labels = { meal: '🍽️ Add Meal / Food', mood: '😊 Add Mood', packed: '🎒 Add Packed / Left', milestone: '⭐ Add Milestone' };
+  const labels = { meal: '🍽️ Add Meal / Food', mood: '😊 Add Mood', packed: '🎒 Add Packed / Left', milestone: '⭐ Add Milestone', health: '💊 Add Medicine / Health' };
   document.getElementById('log-form-title').textContent = labels[type];
   document.getElementById('log-form-text').value = '';
   document.getElementById('log-form').classList.add('open');
@@ -589,14 +673,15 @@ window.submitLog = async function() {
   textarea.value = '';
   textarea.focus();
   try {
-    await addDoc(collection(db, 'log_entries'), {
-      date: todayStr(),
-      type: savedType,
-      text,
-      author: currentUsername,
-      authorUid: currentUser.uid,
-      ts: serverTimestamp()
-    });
+    const entry = { date: todayStr(), type: savedType, text, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp() };
+    const writes = [addDoc(collection(db, 'log_entries'), entry)];
+    if (savedType === 'health') {
+      writes.push(addDoc(collection(db, 'calendar_events'), {
+        date: todayStr(), title: `💊 ${text}`,
+        author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
+      }));
+    }
+    await Promise.all(writes);
     showToast('Saved ✓');
   } catch(e) {
     showToast('Error saving — try again');
@@ -635,7 +720,21 @@ document.addEventListener('click', function(e) {
   if (action) {
     e.stopPropagation();
     const act = action.dataset.action;
-    if (act === 'delete-one') {
+    if (act === 'pin-add') {
+      const input = document.getElementById('pin-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      addDoc(collection(db, 'pinned_notes'), { text, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp() })
+        .then(() => showToast('Note pinned ✓')).catch(() => showToast('Could not pin note'));
+    } else if (act === 'install-app') {
+      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+      document.getElementById('install-banner').style.display = 'none';
+      localStorage.setItem('installDismissed', '1');
+    } else if (act === 'install-dismiss') {
+      document.getElementById('install-banner').style.display = 'none';
+      localStorage.setItem('installDismissed', '1');
+    } else if (act === 'delete-one') {
       const pd = pendingDelete;
       closeDeleteModal();
       if (!pd) return;
@@ -907,6 +1006,7 @@ const TYPE_META = {
   mood:      { badge: 'badge-mood',      icon: '😊', label: 'Mood' },
   packed:    { badge: 'badge-packed',    icon: '🎒', label: 'Packed' },
   milestone: { badge: 'badge-milestone', icon: '⭐', label: 'Milestone' },
+  health:    { badge: 'badge-health',    icon: '💊', label: 'Health' },
 };
 
 function renderEntryCard(e, showDelete) {
