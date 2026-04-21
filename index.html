@@ -30,11 +30,14 @@
   #auth-screen p.sub { color: var(--muted); margin-bottom: 32px; }
   .auth-card { background: var(--surface); border-radius: var(--radius); padding: 28px; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
   .auth-card label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
-  .auth-card input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 1rem; margin-bottom: 16px; outline: none; transition: border-color .15s; }
+  .auth-card input[type="email"],
+  .auth-card input[type="password"] { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 1rem; margin-bottom: 16px; outline: none; transition: border-color .15s; }
   .auth-card input:focus { border-color: var(--scott); }
   .btn-primary { width: 100%; background: var(--scott); color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; }
   .btn-primary:active { opacity: .85; }
-  #auth-error { color: var(--mom); font-size: .875rem; margin-top: 12px; min-height: 20px; }
+  #auth-error { font-size: .875rem; margin-top: 12px; min-height: 20px; color: var(--mom); }
+  #auth-error.success { color: #16a34a; }
+  #btn-forgot { background: none; border: none; color: var(--muted); font-size: .85rem; cursor: pointer; text-decoration: underline; margin-top: 12px; display: block; width: 100%; text-align: center; }
 
   /* ── App shell ── */
   #app { display: none; flex-direction: column; height: 100vh; }
@@ -52,9 +55,10 @@
 
   /* ── Tab bar ── */
   #tabbar { height: var(--tab-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-shrink: 0; }
-  .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: .7rem; font-weight: 600; transition: color .15s; }
+  .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: .7rem; font-weight: 600; transition: color .15s; position: relative; }
   .tab-btn.active { color: var(--scott); }
   .tab-btn svg { width: 22px; height: 22px; }
+  .tab-badge { position: absolute; top: 10px; right: calc(50% - 16px); width: 8px; height: 8px; background: var(--mom); border-radius: 50%; display: none; border: 1.5px solid var(--surface); }
 
   /* ── Views ── */
   .view { display: none; padding: 16px; }
@@ -105,6 +109,11 @@
   .btn-delete { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .8rem; padding: 2px 6px; border-radius: 4px; margin-left: auto; opacity: .6; }
   .btn-delete:hover { opacity: 1; color: var(--mom); }
 
+  /* ── Upcoming events ── */
+  .upcoming-item { background: var(--surface); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; }
+  .upcoming-date { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 48px; padding-top: 1px; }
+  .upcoming-title { font-size: .9rem; line-height: 1.4; }
+
   /* ── Calendar view ── */
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .cal-nav h2 { font-size: 1.1rem; font-weight: 700; }
@@ -153,8 +162,10 @@
 
   /* Event form in day panel */
   #day-event-form { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
-  #day-event-form input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; outline: none; margin-bottom: 8px; }
-  #day-event-form input:focus { border-color: var(--scott); }
+  #day-event-form input[type="text"] { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; outline: none; margin-bottom: 8px; }
+  #day-event-form input[type="text"]:focus { border-color: var(--scott); }
+  .repeat-label { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); margin-bottom: 10px; cursor: pointer; }
+  .repeat-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
 
   /* ── Log view ── */
   .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
@@ -183,6 +194,7 @@
     <label for="auth-password">Password</label>
     <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••">
     <button type="button" class="btn-primary" id="btn-login">Sign In</button>
+    <button type="button" id="btn-forgot">Forgot password?</button>
     <div id="auth-error"></div>
   </div>
 </div>
@@ -224,6 +236,11 @@
 
       <div class="section-title" id="today-entries-label">Today's log</div>
       <div id="today-entries"><div class="empty-state">No entries yet today</div></div>
+
+      <div id="upcoming-section" style="display:none; margin-top:24px">
+        <div class="section-title">Upcoming — next 7 days</div>
+        <div id="upcoming-list"></div>
+      </div>
     </div>
 
     <!-- Calendar view -->
@@ -261,6 +278,7 @@
       Calendar
     </button>
     <button type="button" class="tab-btn" id="tab-log" onclick="switchTab('log')">
+      <span id="log-badge" class="tab-badge"></span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       Log
     </button>
@@ -276,6 +294,9 @@
   <div id="day-event-form">
     <div class="section-title" style="margin-bottom:8px">Add calendar note</div>
     <input type="text" id="event-title-input" placeholder="e.g. Doctor appointment 2pm">
+    <label class="repeat-label">
+      <input type="checkbox" id="event-repeat"> Repeat weekly for 12 weeks
+    </label>
     <div class="form-row">
       <button type="button" class="btn-cancel" onclick="closeDayPanel()">Cancel</button>
       <button type="button" class="btn-save" onclick="submitEvent()">Save</button>
@@ -288,7 +309,7 @@
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, addDoc, deleteDoc, doc,
   query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp }
@@ -336,6 +357,12 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function dateStrOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 // ── State ──
 let currentUser = null;
 let currentUsername = null;
@@ -349,21 +376,38 @@ let calUnsubscribe = null;
 let todayUnsubscribe = null;
 let openLogType = null;
 let selectedDate = null;
+let lastLogVisitTs = parseInt(localStorage.getItem('lastLogVisit') || '0');
 
 // ── Auth ──
 document.getElementById('btn-login').addEventListener('click', async () => {
   const email = document.getElementById('auth-email').value.trim();
   const pass = document.getElementById('auth-password').value;
-  document.getElementById('auth-error').textContent = '';
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  errEl.className = '';
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
-    document.getElementById('auth-error').textContent = 'Invalid email or password.';
+    errEl.textContent = 'Invalid email or password.';
   }
 });
 
 document.getElementById('auth-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+document.getElementById('btn-forgot').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const errEl = document.getElementById('auth-error');
+  errEl.className = '';
+  if (!email) { errEl.textContent = 'Enter your email first.'; return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    errEl.className = 'success';
+    errEl.textContent = 'Reset email sent — check your inbox.';
+  } catch(e) {
+    errEl.textContent = 'Could not send reset email.';
+  }
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
@@ -396,11 +440,12 @@ function subscribeCalendarEvents() {
   calUnsubscribe = onSnapshot(collection(db, 'calendar_events'), snap => {
     calEventDates = new Map();
     snap.docs.forEach(d => {
-      const { date, title } = d.data();
-      if (!calEventDates.has(date)) calEventDates.set(date, []);
-      calEventDates.get(date).push(title);
+      const ev = d.data();
+      if (!calEventDates.has(ev.date)) calEventDates.set(ev.date, []);
+      calEventDates.get(ev.date).push({ id: d.id, title: ev.title, author: ev.author });
     });
     buildCalGrid();
+    renderUpcomingEvents();
   }, () => { calEventDates = new Map(); });
 }
 
@@ -410,7 +455,12 @@ window.switchTab = function(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('view-' + tab).classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
-  if (tab === 'log') renderLogFeed(true);
+  if (tab === 'log') {
+    lastLogVisitTs = Date.now();
+    localStorage.setItem('lastLogVisit', String(lastLogVisitTs));
+    document.getElementById('log-badge').style.display = 'none';
+    renderLogFeed(true);
+  }
   if (tab === 'calendar') renderCalendar();
 };
 
@@ -435,7 +485,6 @@ function renderToday() {
   document.getElementById('today-entries-label').textContent = `Today's log — ${formatDate(today)}`;
 
   if (todayUnsubscribe) todayUnsubscribe();
-  // Query without orderBy to avoid needing composite index; sort client-side
   const q = query(collection(db, 'log_entries'), where('date', '==', today));
   todayUnsubscribe = onSnapshot(q, snap => {
     const entries = snap.docs
@@ -445,7 +494,44 @@ function renderToday() {
     container.innerHTML = entries.length === 0
       ? '<div class="empty-state">No entries yet today</div>'
       : entries.map(e => renderEntryCard(e, true)).join('');
+
+    // Badge: show dot on Log tab if other parent has logged entries newer than last visit
+    const otherEntries = entries.filter(e => e.author !== currentUsername && e.ts?.seconds);
+    if (otherEntries.length) {
+      const maxOtherMs = Math.max(...otherEntries.map(e => e.ts.seconds * 1000));
+      const badge = document.getElementById('log-badge');
+      if (maxOtherMs > lastLogVisitTs && badge) {
+        badge.style.display = 'block';
+      }
+    }
   });
+}
+
+function renderUpcomingEvents() {
+  const section = document.getElementById('upcoming-section');
+  const list = document.getElementById('upcoming-list');
+  const today = todayStr();
+  const upcoming = [];
+
+  for (let i = 1; i <= 7; i++) {
+    const ds = dateStrOffset(i);
+    const evs = calEventDates.get(ds);
+    if (evs && evs.length) {
+      evs.forEach(ev => upcoming.push({ ds, title: ev.title }));
+    }
+  }
+
+  if (!upcoming.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  list.innerHTML = upcoming.map(ev => `
+    <div class="upcoming-item">
+      <div class="upcoming-date">${formatShortDate(ev.ds)}</div>
+      <div class="upcoming-title">📅 ${escHtml(ev.title)}</div>
+    </div>`).join('');
 }
 
 window.openLogForm = function(type) {
@@ -474,6 +560,7 @@ window.submitLog = async function() {
       type: savedType,
       text,
       author: currentUsername,
+      authorUid: currentUser.uid,
       ts: serverTimestamp()
     });
     showToast('Saved ✓');
@@ -487,7 +574,6 @@ async function deleteEntry(id, collName) {
   try {
     await deleteDoc(doc(db, collName, id));
     showToast('Removed');
-    if (collName === 'calendar_events') loadCalendarEvents().then(() => buildCalGrid());
     const panel = document.getElementById('day-panel');
     if (selectedDate && panel.classList.contains('open')) {
       openDayPanel(selectedDate);
@@ -534,7 +620,7 @@ function buildCalGrid() {
     const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const cust = custodianForDate(ds);
     const events = calEventDates.get(ds) || [];
-    const pills = events.slice(0,3).map(t => `<div class="cal-event-pill">${escHtml(t)}</div>`).join('');
+    const pills = events.slice(0,3).map(ev => `<div class="cal-event-pill">${escHtml(ev.title)}</div>`).join('');
     html += `<div class="cal-day${ds === todayDs ? ' today' : ''}" onclick="openDayPanel('${ds}')">
       <div class="cal-day-top"><span class="cal-day-num">${day}</span><div class="cust-dot ${cust}"></div></div>
       ${pills}
@@ -559,6 +645,7 @@ window.openDayPanel = async function(ds) {
   custEl.textContent = `Cole is with ${displayName(cust)}`;
   custEl.className = `cust-label ${cust}`;
   document.getElementById('event-title-input').value = '';
+  document.getElementById('event-repeat').checked = false;
   document.getElementById('day-panel-entries').innerHTML = '<div class="spinner"></div>';
   document.getElementById('day-panel').classList.add('open');
   document.getElementById('day-panel-overlay').classList.add('open');
@@ -608,13 +695,24 @@ window.submitEvent = async function() {
   if (!title) return;
   if (!selectedDate) { showToast('No date selected'); return; }
   const savedDate = selectedDate;
+  const repeat = document.getElementById('event-repeat').checked;
   input.value = '';
+  document.getElementById('event-repeat').checked = false;
   closeDayPanel();
+
   try {
-    await addDoc(collection(db, 'calendar_events'), {
-      date: savedDate, title, author: currentUsername, ts: serverTimestamp()
-    });
-    showToast('Note saved ✓');
+    const writes = [];
+    const weeks = repeat ? 12 : 1;
+    for (let w = 0; w < weeks; w++) {
+      const [y, m, day] = savedDate.split('-').map(Number);
+      const d = new Date(y, m - 1, day + w * 7);
+      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      writes.push(addDoc(collection(db, 'calendar_events'), {
+        date: ds, title, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
+      }));
+    }
+    await Promise.all(writes);
+    showToast(repeat ? `Saved for 12 weeks ✓` : 'Note saved ✓');
   } catch(e) {
     showToast('Error saving note');
   }
@@ -712,6 +810,11 @@ function renderEntryCard(e, showDelete) {
 function formatDate(ds) {
   const [y,m,d] = ds.split('-').map(Number);
   return new Date(y, m-1, d).toLocaleDateString('default', { weekday:'short', month:'short', day:'numeric' });
+}
+
+function formatShortDate(ds) {
+  const [y,m,d] = ds.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('default', { month:'short', day:'numeric' });
 }
 
 function escHtml(s) {
