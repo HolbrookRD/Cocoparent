@@ -128,12 +128,12 @@
   #topbar h1 { font-size: 1.2rem; font-weight: 700; cursor: pointer; user-select: none; }
   #cole-panel {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 150;
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    box-shadow: 0 8px 24px rgba(0,0,0,.1);
-    padding: 16px; max-height: 0; overflow: hidden;
-    transition: max-height .25s ease, padding .25s ease;
+    background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.1);
+    max-height: 0; overflow: hidden;
+    transition: max-height .3s ease;
   }
-  #cole-panel.open { max-height: 500px; }
+  #cole-panel.open { max-height: 520px; border-bottom: 1px solid var(--border); }
+  #cole-panel-inner { padding: 16px; }
   #cole-panel .panel-age { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 14px; }
   #cole-panel .panel-age span { color: var(--scott); }
   .pin-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -261,13 +261,15 @@
   <div id="topbar">
     <h1 id="topbar-title" data-action="toggle-cole-panel">🌿 Cole Holbrook</h1>
     <div id="cole-panel">
-      <div class="panel-age">Cole is <span id="panel-age-text"></span></div>
-      <div class="section-title" style="margin-bottom:8px">📌 Shared Notes</div>
-      <div class="pin-add-row">
-        <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
-        <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
+      <div id="cole-panel-inner">
+        <div class="panel-age">Cole is <span id="panel-age-text"></span></div>
+        <div class="section-title" style="margin-bottom:8px">📌 Shared Notes</div>
+        <div class="pin-add-row">
+          <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
+          <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
+        </div>
+        <div id="pinned-list"></div>
       </div>
-      <div id="pinned-list"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span id="topbar-user"></span>
