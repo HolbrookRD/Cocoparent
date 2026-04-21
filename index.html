@@ -49,7 +49,7 @@
   #app.visible { display: flex; }
 
   /* ── Top bar ── */
-  #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  #topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; position: relative; }
   #topbar h1 { font-size: 1.2rem; font-weight: 700; }
   #topbar-user { font-size: .8rem; color: var(--muted); }
   #btn-logout { background: none; border: none; color: var(--muted); font-size: .8rem; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
@@ -79,7 +79,6 @@
   .custodian-banner .name { font-size: 1.6rem; font-weight: 800; }
   .custodian-banner.scott .name { color: var(--scott); }
   .custodian-banner.mom .name { color: var(--mom); }
-  .custodian-banner .age { font-size: .78rem; color: var(--muted); margin-top: 4px; font-weight: 600; }
 
   /* ── Handoff card ── */
   .handoff-card { background: #fffbeb; border: 2px solid #fbbf24; border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; }
@@ -125,15 +124,25 @@
   .btn-delete { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .8rem; padding: 2px 6px; border-radius: 4px; margin-left: auto; opacity: .6; }
   .btn-delete:hover { opacity: 1; color: var(--mom); }
 
-  /* ── Pinned notes ── */
-  #pinned-section { margin-bottom: 20px; }
+  /* ── Cole info panel ── */
+  #topbar h1 { font-size: 1.2rem; font-weight: 700; cursor: pointer; user-select: none; }
+  #cole-panel {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 150;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    box-shadow: 0 8px 24px rgba(0,0,0,.1);
+    padding: 16px; max-height: 0; overflow: hidden;
+    transition: max-height .25s ease, padding .25s ease;
+  }
+  #cole-panel.open { max-height: 500px; }
+  #cole-panel .panel-age { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+  #cole-panel .panel-age span { color: var(--scott); }
   .pin-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
   .pin-add-row input { flex: 1; border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: .9rem; outline: none; }
   .pin-add-row input:focus { border-color: #0d9488; }
   .btn-pin { background: #0d9488; color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: .85rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
-  .pin-card { background: var(--surface); border-left: 4px solid #0d9488; border-radius: 0 10px 10px 0; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; }
-  .pin-card-text { flex: 1; font-size: .9rem; line-height: 1.5; }
-  .pin-card-meta { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+  .pin-card { background: var(--bg); border-left: 4px solid #0d9488; border-radius: 0 8px 8px 0; padding: 8px 10px; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px; }
+  .pin-card-text { flex: 1; font-size: .88rem; line-height: 1.4; }
+  .pin-card-meta { font-size: .7rem; color: var(--muted); margin-top: 2px; }
 
   /* ── Upcoming events ── */
   .upcoming-item { background: var(--surface); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; }
@@ -250,7 +259,16 @@
 <!-- App -->
 <div id="app">
   <div id="topbar">
-    <h1>🌿 Cole Holbrook</h1>
+    <h1 id="topbar-title" data-action="toggle-cole-panel">🌿 Cole Holbrook</h1>
+    <div id="cole-panel">
+      <div class="panel-age">Cole is <span id="panel-age-text"></span></div>
+      <div class="section-title" style="margin-bottom:8px">📌 Shared Notes</div>
+      <div class="pin-add-row">
+        <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
+        <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
+      </div>
+      <div id="pinned-list"></div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;">
       <span id="topbar-user"></span>
       <button type="button" id="btn-logout">Sign out</button>
@@ -271,7 +289,6 @@
       <div id="today-banner" class="custodian-banner scott">
         <div class="label">Cole is with</div>
         <div class="name" id="today-custodian-name">–</div>
-        <div class="age" id="cole-age"></div>
       </div>
 
       <!-- Handoff note (transfer days only) -->
@@ -295,15 +312,6 @@
         </div>
       </div>
 
-      <!-- Pinned notes -->
-      <div id="pinned-section">
-        <div class="section-title">📌 Shared Notes</div>
-        <div class="pin-add-row">
-          <input type="text" id="pin-input" placeholder="Allergy, schedule note, reminder…">
-          <button type="button" class="btn-pin" data-action="pin-add">Pin</button>
-        </div>
-        <div id="pinned-list"></div>
-      </div>
 
       <div class="section-title" id="today-entries-label">Today's log</div>
       <div id="today-entries"><div class="empty-state">No entries yet today</div></div>
@@ -670,7 +678,6 @@ function renderToday() {
   const banner = document.getElementById('today-banner');
   banner.className = `custodian-banner ${cust}`;
   document.getElementById('today-custodian-name').textContent = displayName(cust);
-  document.getElementById('cole-age').textContent = coleAge();
   document.getElementById('today-entries-label').textContent = `Today's log — ${formatDate(today)}`;
 
   if (todayUnsubscribe) todayUnsubscribe();
@@ -792,7 +799,14 @@ document.addEventListener('click', function(e) {
   if (action) {
     e.stopPropagation();
     const act = action.dataset.action;
-    if (act === 'handoff-save') {
+    if (act === 'toggle-cole-panel') {
+      const panel = document.getElementById('cole-panel');
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) {
+        document.getElementById('panel-age-text').textContent = coleAge();
+      }
+      return;
+    } else if (act === 'handoff-save') {
       const input = document.getElementById('handoff-input');
       const text = input ? input.value.trim() : '';
       if (!text) return;
@@ -860,6 +874,15 @@ document.addEventListener('click', function(e) {
     } else {
       if (card) card.remove();
       deleteEntry(id, col);
+    }
+  }
+});
+
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('cole-panel');
+  if (panel && panel.classList.contains('open')) {
+    if (!document.getElementById('topbar').contains(e.target)) {
+      panel.classList.remove('open');
     }
   }
 });
