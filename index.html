@@ -290,7 +290,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { initializeFirestore, persistentLocalCache, collection, addDoc, deleteDoc, doc,
+import { getFirestore, collection, addDoc, deleteDoc, doc,
   query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -305,7 +305,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = initializeFirestore(app, { localCache: persistentLocalCache() });
+const db = getFirestore(app);
 
 // ── Schedule logic — anchor April 13 2026 (Monday) ──
 const ANCHOR = new Date('2026-04-13T00:00:00');
@@ -503,13 +503,8 @@ function renderCalendar() {
 }
 
 async function loadCalendarEvents() {
-  const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
   try {
-    const evSnap = await getDocs(query(
-      collection(db, 'calendar_events'),
-      where('date', '>=', monthStr + '-01'),
-      where('date', '<=', monthStr + '-31')
-    ));
+    const evSnap = await getDocs(collection(db, 'calendar_events'));
     calEventDates = new Map();
     evSnap.docs.forEach(d => {
       const { date, title } = d.data();
