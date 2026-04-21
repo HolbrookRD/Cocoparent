@@ -326,6 +326,17 @@
 
 <div id="toast"></div>
 
+<!-- Recurring delete modal -->
+<div id="delete-modal" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;">
+    <p style="font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Remove event</p>
+    <p style="font-size:1rem;font-weight:600;margin-bottom:20px" id="delete-modal-title"></p>
+    <button onclick="confirmDeleteOne()" style="width:100%;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:10px;color:#1e293b">Remove this date only</button>
+    <button onclick="confirmDeleteAll()" style="width:100%;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:10px;color:#b91c1c">Remove all recurring dates</button>
+    <button onclick="closeDeleteModal()" style="width:100%;background:none;border:none;padding:10px;font-size:.9rem;color:#64748b;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -398,6 +409,7 @@ let todayUnsubscribe = null;
 let openLogType = null;
 let selectedDate = null;
 let lastLogVisitTs = parseInt(localStorage.getItem('lastLogVisit') || '0');
+let pendingDelete = null;
 
 // ── Auth ──
 document.getElementById('btn-login').addEventListener('click', async () => {
@@ -574,7 +586,8 @@ window.submitLog = async function() {
   const text = textarea.value.trim();
   if (!text || !openLogType) return;
   const savedType = openLogType;
-  closeLogForm();
+  textarea.value = '';
+  textarea.focus();
   try {
     await addDoc(collection(db, 'log_entries'), {
       date: todayStr(),
@@ -606,15 +619,73 @@ async function deleteEntry(id, collName) {
   }
 }
 
+function findSiblingEventIds(title, author) {
+  const ids = [];
+  calEventDates.forEach(events => {
+    events.forEach(ev => {
+      if (ev.title === title && ev.author === author) ids.push(ev.id);
+    });
+  });
+  return ids;
+}
+
 document.addEventListener('click', function(e) {
   const btn = e.target.closest('[data-del-id]');
   if (btn) {
     e.stopPropagation();
+    const id = btn.dataset.delId;
+    const col = btn.dataset.delCol;
     const card = btn.closest('.entry-card');
-    if (card) card.remove();
-    deleteEntry(btn.dataset.delId, btn.dataset.delCol);
+
+    if (col === 'calendar_events') {
+      const titleEl = card ? card.querySelector('.entry-text') : null;
+      const title = titleEl ? titleEl.textContent : '';
+      const siblingIds = findSiblingEventIds(title, currentUsername);
+      if (siblingIds.length > 1) {
+        pendingDelete = { id, col, title, card, allIds: siblingIds };
+        document.getElementById('delete-modal-title').textContent = `"${title}"`;
+        document.getElementById('delete-modal').style.display = 'flex';
+      } else {
+        if (card) card.remove();
+        deleteEntry(id, col);
+      }
+    } else {
+      if (card) card.remove();
+      deleteEntry(id, col);
+    }
   }
 });
+
+window.confirmDeleteOne = async function() {
+  closeDeleteModal();
+  if (!pendingDelete) return;
+  const { id, col, card } = pendingDelete;
+  pendingDelete = null;
+  if (card) card.remove();
+  deleteEntry(id, col);
+};
+
+window.confirmDeleteAll = async function() {
+  closeDeleteModal();
+  if (!pendingDelete) return;
+  const { allIds } = pendingDelete;
+  pendingDelete = null;
+  try {
+    const batch = writeBatch(db);
+    allIds.forEach(eid => batch.delete(doc(db, 'calendar_events', eid)));
+    await batch.commit();
+    showToast(`Removed ${allIds.length} events ✓`);
+    const panel = document.getElementById('day-panel');
+    if (selectedDate && panel.classList.contains('open')) openDayPanel(selectedDate);
+  } catch(e) {
+    showToast('Could not remove all');
+  }
+};
+
+window.closeDeleteModal = function() {
+  document.getElementById('delete-modal').style.display = 'none';
+  pendingDelete = null;
+};
 
 // ────────────────────────────────────────
 // CALENDAR VIEW
