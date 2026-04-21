@@ -167,8 +167,8 @@
 
 <!-- Auth -->
 <div id="auth-screen">
-  <h1>🌿 Cole Holbrook</h1>
-  <p class="sub">Co-co parenting made easy</p>
+  <h1>🌿 Coco-parenting</h1>
+  <p class="sub">Andres Cole Holbrook</p>
   <div class="auth-card">
     <label for="auth-email">Email</label>
     <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com">
@@ -239,6 +239,7 @@
       </div>
       <div id="log-entries"></div>
       <button type="button" class="load-more" id="btn-load-more" onclick="loadMoreLog()" style="display:none">Load more</button>
+      <button type="button" class="load-more" id="btn-export" onclick="exportLog()" style="margin-top:8px">⬇ Export all entries</button>
     </div>
   </div>
 
@@ -281,8 +282,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, limit,
-  getDocs, onSnapshot, startAfter, serverTimestamp }
+import { initializeFirestore, persistentLocalCache, collection, addDoc, deleteDoc, doc,
+  query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -296,7 +297,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 
 // ── Schedule logic — anchor April 13 2026 (Monday) ──
 const ANCHOR = new Date('2026-04-13T00:00:00');
@@ -477,6 +478,8 @@ document.addEventListener('click', function(e) {
   const btn = e.target.closest('[data-del-id]');
   if (btn) {
     e.stopPropagation();
+    const card = btn.closest('.entry-card');
+    if (card) card.remove();
     deleteEntry(btn.dataset.delId, btn.dataset.delCol);
   }
 });
@@ -616,25 +619,49 @@ async function renderLogFeed(reset = false) {
   if (reset) container.innerHTML = '<div class="spinner" style="margin:32px auto;display:block"></div>';
 
   try {
-    let q = query(collection(db,'log_entries'), orderBy('ts','desc'), limit(20));
-    if (logFilter !== 'all') q = query(collection(db,'log_entries'), where('type','==',logFilter), orderBy('ts','desc'), limit(20));
-    if (logLastDoc) {
-      q = logFilter !== 'all'
-        ? query(collection(db,'log_entries'), where('type','==',logFilter), orderBy('ts','desc'), startAfter(logLastDoc), limit(20))
-        : query(collection(db,'log_entries'), orderBy('ts','desc'), startAfter(logLastDoc), limit(20));
-    }
+    let q = logLastDoc
+      ? query(collection(db,'log_entries'), orderBy('ts','desc'), startAfter(logLastDoc), limit(50))
+      : query(collection(db,'log_entries'), orderBy('ts','desc'), limit(50));
     const snap = await getDocs(q);
-    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     logLastDoc = snap.docs[snap.docs.length - 1] || null;
-    logEntriesCache = reset ? entries : [...logEntriesCache, ...entries];
-    container.innerHTML = logEntriesCache.length === 0
+    const fetched = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    logEntriesCache = reset ? fetched : [...logEntriesCache, ...fetched];
+    const filtered = logFilter === 'all' ? logEntriesCache : logEntriesCache.filter(e => e.type === logFilter);
+    container.innerHTML = filtered.length === 0
       ? '<div class="empty-state">No entries yet</div>'
-      : logEntriesCache.map(e => renderEntryCard(e, false)).join('');
-    document.getElementById('btn-load-more').style.display = snap.docs.length === 20 ? 'block' : 'none';
+      : filtered.map(e => renderEntryCard(e, true)).join('');
+    document.getElementById('btn-load-more').style.display = snap.docs.length === 50 ? 'block' : 'none';
   } catch(e) {
     container.innerHTML = '<div class="empty-state">Could not load entries</div>';
   }
 }
+
+window.exportLog = async function() {
+  const btn = document.getElementById('btn-export');
+  btn.textContent = 'Exporting…';
+  try {
+    const snap = await getDocs(query(collection(db,'log_entries'), orderBy('ts','desc')));
+    const entries = snap.docs.map(d => d.data());
+    const lines = ['Date,Time,Type,Author,Entry'];
+    entries.forEach(e => {
+      const ts = e.ts ? (e.ts.toDate ? e.ts.toDate() : new Date(e.ts.seconds*1000)) : new Date();
+      const date = ts.toLocaleDateString();
+      const time = ts.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      const author = e.author === 'scott' ? 'Dad' : 'Mom';
+      const text = `"${(e.text||'').replace(/"/g,'""')}"`;
+      lines.push(`${date},${time},${e.type},${author},${text}`);
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'cole-holbrook-log.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('Downloaded ✓');
+  } catch(e) {
+    showToast('Export failed');
+  }
+  btn.textContent = '⬇ Export all entries';
+};
 
 window.setFilter = function(type, btn) {
   logFilter = type;
