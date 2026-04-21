@@ -457,8 +457,8 @@ window.submitLog = async function() {
   }
 };
 
-// ── Delete entry ──
-window.deleteEntry = async function(id, collName) {
+// ── Delete entry — event delegation (reliable on iOS Safari) ──
+async function deleteEntry(id, collName) {
   try {
     await deleteDoc(doc(db, collName, id));
     showToast('Removed');
@@ -471,7 +471,15 @@ window.deleteEntry = async function(id, collName) {
   } catch(e) {
     showToast('Could not remove');
   }
-};
+}
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-del-id]');
+  if (btn) {
+    e.stopPropagation();
+    deleteEntry(btn.dataset.delId, btn.dataset.delCol);
+  }
+});
 
 // ────────────────────────────────────────
 // CALENDAR VIEW
@@ -561,7 +569,7 @@ window.openDayPanel = async function(ds) {
       html += `<div class="entry-card"><div class="entry-header">
         <span class="entry-type-badge badge-milestone">📅 Event</span>
         <span class="entry-author author-${ev.author}">${displayName(ev.author)}</span>
-        ${canDelete ? `<button type="button" class="btn-delete" onclick="deleteEntry('${ev.id}','calendar_events')">✕</button>` : ''}
+        ${canDelete ? `<button type="button" class="btn-delete" data-del-id="${ev.id}" data-del-col="calendar_events">✕</button>` : ''}
       </div><div class="entry-text">${escHtml(ev.title)}</div></div>`;
     });
     logs.forEach(e => { html += renderEntryCard(e, true); });
@@ -580,10 +588,12 @@ window.closeDayPanel = function() {
 };
 
 window.submitEvent = async function() {
-  const title = document.getElementById('event-title-input').value.trim();
+  const input = document.getElementById('event-title-input');
+  const title = input.value.trim();
   if (!title) return;
   if (!selectedDate) { showToast('No date selected'); return; }
   const savedDate = selectedDate;
+  input.value = '';
   closeDayPanel();
   try {
     await addDoc(collection(db, 'calendar_events'), {
@@ -655,7 +665,7 @@ function renderEntryCard(e, showDelete) {
     <div class="entry-header">
       <span class="entry-type-badge ${meta.badge}">${meta.icon} ${meta.label}</span>
       <span class="entry-author author-${e.author}">${displayName(e.author)}</span>
-      ${canDelete ? `<button type="button" class="btn-delete" onclick="deleteEntry('${e.id}','log_entries')">✕</button>` : ''}
+      ${canDelete ? `<button type="button" class="btn-delete" data-del-id="${e.id}" data-del-col="log_entries">✕</button>` : ''}
     </div>
     <div class="entry-text">${escHtml(e.text)}</div>
     <div class="entry-time">${dateTimeStr}</div>
