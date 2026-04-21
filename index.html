@@ -114,31 +114,46 @@
   .upcoming-date { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 48px; padding-top: 1px; }
   .upcoming-title { font-size: .9rem; line-height: 1.4; }
 
-  /* ── Calendar view ── */
-  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-  .cal-nav h2 { font-size: 1.1rem; font-weight: 700; }
+  /* ── Calendar view — full-screen fill ── */
+  #view-calendar {
+    padding: 8px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-shrink: 0; }
+  .cal-nav h2 { font-size: 1.05rem; font-weight: 700; }
   .cal-arrow { background: none; border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 1rem; cursor: pointer; }
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 16px; }
-  .cal-dow { text-align: center; font-size: .7rem; font-weight: 700; color: var(--muted); padding: 4px 0; text-transform: uppercase; }
+  .cal-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    overflow: hidden;
+  }
+  .cal-dow { text-align: center; font-size: .65rem; font-weight: 700; color: var(--muted); padding: 2px 0 4px; text-transform: uppercase; align-self: center; }
   .cal-day {
     border-radius: 8px; border: 1.5px solid var(--border);
     background: var(--surface); cursor: pointer;
     display: flex; flex-direction: column; align-items: stretch;
-    min-height: 52px; padding: 4px 4px 3px; gap: 2px;
+    padding: 5px 4px 4px; gap: 2px;
     transition: background .1s; overflow: hidden;
+    min-height: 0;
   }
   .cal-day:active { opacity: .7; }
   .cal-day.empty { background: transparent; border-color: transparent; cursor: default; }
-  .cal-day.today { border-color: var(--scott); }
-  .cal-day-top { display: flex; align-items: center; justify-content: space-between; }
-  .cal-day-num { font-size: .85rem; font-weight: 700; }
+  .cal-day.today { border-color: var(--scott); border-width: 2px; }
+  .cal-day-top { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .cal-day-num { font-size: .82rem; font-weight: 700; line-height: 1; }
   .cust-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .cust-dot.scott { background: var(--scott); }
   .cust-dot.mom { background: var(--mom); }
   .cal-event-pill {
-    font-size: .55rem; font-weight: 600; line-height: 1.3;
+    font-size: .62rem; font-weight: 600; line-height: 1.3;
     background: var(--scott-light); color: var(--scott);
-    border-radius: 3px; padding: 1px 3px;
+    border-radius: 3px; padding: 1px 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
@@ -164,8 +179,8 @@
   #day-event-form { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
   #day-event-form input[type="text"] { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; outline: none; margin-bottom: 8px; }
   #day-event-form input[type="text"]:focus { border-color: var(--scott); }
-  .repeat-label { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); margin-bottom: 10px; cursor: pointer; }
-  .repeat-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+  .repeat-select { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; font-size: .95rem; outline: none; margin-bottom: 10px; background: var(--surface); color: var(--text); appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  .repeat-select:focus { border-color: var(--scott); }
 
   /* ── Log view ── */
   .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
@@ -294,9 +309,14 @@
   <div id="day-event-form">
     <div class="section-title" style="margin-bottom:8px">Add calendar note</div>
     <input type="text" id="event-title-input" placeholder="e.g. Doctor appointment 2pm">
-    <label class="repeat-label">
-      <input type="checkbox" id="event-repeat"> Repeat weekly for 12 weeks
-    </label>
+    <select id="event-repeat" class="repeat-select">
+      <option value="none">Does not repeat</option>
+      <option value="daily">Every day (1 week)</option>
+      <option value="weekly">Every week (12 weeks)</option>
+      <option value="biweekly">Every 2 weeks (6 months)</option>
+      <option value="monthly">Every month (12 months)</option>
+      <option value="annually">Every year (3 years)</option>
+    </select>
     <div class="form-row">
       <button type="button" class="btn-cancel" onclick="closeDayPanel()">Cancel</button>
       <button type="button" class="btn-save" onclick="submitEvent()">Save</button>
@@ -613,6 +633,7 @@ function buildCalGrid() {
   startDow = startDow === 0 ? 6 : startDow - 1;
 
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const numWeeks = Math.ceil((startDow + daysInMonth) / 7);
   const todayDs = todayStr();
 
   for (let i = 0; i < startDow; i++) html += '<div class="cal-day empty"></div>';
@@ -620,13 +641,16 @@ function buildCalGrid() {
     const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const cust = custodianForDate(ds);
     const events = calEventDates.get(ds) || [];
-    const pills = events.slice(0,3).map(ev => `<div class="cal-event-pill">${escHtml(ev.title)}</div>`).join('');
+    const pills = events.map(ev => `<div class="cal-event-pill">${escHtml(ev.title)}</div>`).join('');
     html += `<div class="cal-day${ds === todayDs ? ' today' : ''}" onclick="openDayPanel('${ds}')">
       <div class="cal-day-top"><span class="cal-day-num">${day}</span><div class="cust-dot ${cust}"></div></div>
       ${pills}
     </div>`;
   }
-  document.getElementById('cal-grid').innerHTML = html;
+
+  const grid = document.getElementById('cal-grid');
+  grid.style.gridTemplateRows = `auto repeat(${numWeeks}, 1fr)`;
+  grid.innerHTML = html;
 }
 
 window.calMove = function(dir) {
@@ -645,7 +669,7 @@ window.openDayPanel = async function(ds) {
   custEl.textContent = `Cole is with ${displayName(cust)}`;
   custEl.className = `cust-label ${cust}`;
   document.getElementById('event-title-input').value = '';
-  document.getElementById('event-repeat').checked = false;
+  document.getElementById('event-repeat').value = 'none';
   document.getElementById('day-panel-entries').innerHTML = '<div class="spinner"></div>';
   document.getElementById('day-panel').classList.add('open');
   document.getElementById('day-panel-overlay').classList.add('open');
@@ -689,30 +713,46 @@ window.closeDayPanel = function() {
   selectedDate = null;
 };
 
+function dateToStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 window.submitEvent = async function() {
   const input = document.getElementById('event-title-input');
   const title = input.value.trim();
   if (!title) return;
   if (!selectedDate) { showToast('No date selected'); return; }
   const savedDate = selectedDate;
-  const repeat = document.getElementById('event-repeat').checked;
+  const repeatVal = document.getElementById('event-repeat').value;
   input.value = '';
-  document.getElementById('event-repeat').checked = false;
+  document.getElementById('event-repeat').value = 'none';
   closeDayPanel();
 
   try {
-    const writes = [];
-    const weeks = repeat ? 12 : 1;
-    for (let w = 0; w < weeks; w++) {
-      const [y, m, day] = savedDate.split('-').map(Number);
-      const d = new Date(y, m - 1, day + w * 7);
-      const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      writes.push(addDoc(collection(db, 'calendar_events'), {
-        date: ds, title, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
-      }));
+    const [y, m, day] = savedDate.split('-').map(Number);
+    const base = new Date(y, m - 1, day);
+    const dates = [];
+
+    if (repeatVal === 'none') {
+      dates.push(savedDate);
+    } else if (repeatVal === 'daily') {
+      for (let i = 0; i < 7; i++) dates.push(dateToStr(new Date(y, m-1, day + i)));
+    } else if (repeatVal === 'weekly') {
+      for (let w = 0; w < 12; w++) dates.push(dateToStr(new Date(y, m-1, day + w*7)));
+    } else if (repeatVal === 'biweekly') {
+      for (let w = 0; w < 13; w++) dates.push(dateToStr(new Date(y, m-1, day + w*14)));
+    } else if (repeatVal === 'monthly') {
+      for (let mo = 0; mo < 12; mo++) dates.push(dateToStr(new Date(y, m-1+mo, day)));
+    } else if (repeatVal === 'annually') {
+      for (let yr = 0; yr < 3; yr++) dates.push(dateToStr(new Date(y+yr, m-1, day)));
     }
-    await Promise.all(writes);
-    showToast(repeat ? `Saved for 12 weeks ✓` : 'Note saved ✓');
+
+    await Promise.all(dates.map(ds => addDoc(collection(db, 'calendar_events'), {
+      date: ds, title, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
+    })));
+
+    const labels = { none: 'Note saved ✓', daily: '7 days saved ✓', weekly: '12 weeks saved ✓', biweekly: '13 bi-weekly saved ✓', monthly: '12 months saved ✓', annually: '3 years saved ✓' };
+    showToast(labels[repeatVal] || 'Saved ✓');
   } catch(e) {
     showToast('Error saving note');
   }
