@@ -156,6 +156,14 @@
   .health-link { display: block; width: 100%; background: none; border: none; color: var(--muted); font-size: .85rem; font-weight: 600; padding: 4px 0 20px; cursor: pointer; text-align: center; }
   .health-link:active { opacity: .6; }
 
+  /* ── Quick-add active state ── */
+  .quick-btn.active { border-color: var(--scott); background: var(--scott-light); color: var(--scott); }
+  .health-link.active { color: var(--scott); opacity: 1; }
+
+  /* ── Edit button ── */
+  .btn-edit { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .8rem; padding: 2px 6px; border-radius: 4px; opacity: .6; }
+  .btn-edit:hover { opacity: 1; }
+
   /* ── Calendar view — full-screen fill ── */
   #view-calendar {
     padding: 8px;
@@ -298,12 +306,12 @@
 
       <div class="section-title">Quick add</div>
       <div class="quick-add-row">
-        <button type="button" class="quick-btn" onclick="openLogForm('meal')"><span class="icon">🍽️</span> Meal / Food</button>
-        <button type="button" class="quick-btn" onclick="openLogForm('mood')"><span class="icon">😊</span> Mood</button>
-        <button type="button" class="quick-btn" onclick="openLogForm('packed')"><span class="icon">🎒</span> Packed / Left</button>
-        <button type="button" class="quick-btn" onclick="openLogForm('milestone')"><span class="icon">⭐</span> Milestone</button>
+        <button type="button" class="quick-btn" data-log-type="meal" onclick="openLogForm('meal')"><span class="icon">🍽️</span> Meal / Food</button>
+        <button type="button" class="quick-btn" data-log-type="mood" onclick="openLogForm('mood')"><span class="icon">😊</span> Mood</button>
+        <button type="button" class="quick-btn" data-log-type="packed" onclick="openLogForm('packed')"><span class="icon">🎒</span> Packed / Left</button>
+        <button type="button" class="quick-btn" data-log-type="milestone" onclick="openLogForm('milestone')"><span class="icon">⭐</span> Milestone</button>
       </div>
-      <button type="button" class="health-link" onclick="openLogForm('health')">💊 Log medicine or health note</button>
+      <button type="button" class="health-link" data-log-type="health" onclick="openLogForm('health')">💊 Log medicine or health note</button>
 
       <div class="log-form" id="log-form">
         <h3 id="log-form-title">Add entry</h3>
@@ -409,7 +417,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, addDoc, setDoc, deleteDoc, doc,
+import { getFirestore, collection, addDoc, setDoc, deleteDoc, updateDoc, doc,
   query, where, orderBy, limit, getDocs, onSnapshot, startAfter, serverTimestamp,
   writeBatch }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -492,6 +500,7 @@ let calEventDates = new Map();
 let calUnsubscribe = null;
 let todayUnsubscribe = null;
 let openLogType = null;
+let editingEntryId = null;
 let selectedDate = null;
 let lastLogVisitTs = parseInt(localStorage.getItem('lastLogVisit') || '0');
 let pendingDelete = null;
@@ -517,6 +526,10 @@ document.getElementById('btn-login').addEventListener('click', async () => {
 
 document.getElementById('auth-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+document.getElementById('pin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.querySelector('[data-action="pin-add"]').click();
 });
 
 document.getElementById('btn-forgot').addEventListener('click', async () => {
@@ -662,6 +675,9 @@ window.switchTab = function(tab) {
   if (tab === 'calendar') renderCalendar();
 };
 
+// ── Haptic ──
+function haptic() { if (navigator.vibrate) navigator.vibrate(50); }
+
 // ── Toast ──
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -732,24 +748,59 @@ function renderUpcomingEvents() {
     </div>`).join('');
 }
 
-window.openLogForm = function(type) {
+function setQuickBtnActive(type) {
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.health-link')?.classList.remove('active');
+  if (type) {
+    const btn = document.querySelector(`[data-log-type="${type}"]`);
+    if (btn) btn.classList.add('active');
+  }
+}
+
+window.openLogForm = function(type, entryId = null, existingText = '') {
+  const formOpen = document.getElementById('log-form').classList.contains('open');
+  if (formOpen && openLogType === type && !entryId) {
+    closeLogForm();
+    return;
+  }
+  editingEntryId = entryId;
   openLogType = type;
-  const labels = { meal: '🍽️ Add Meal / Food', mood: '😊 Add Mood', packed: '🎒 Add Packed / Left', milestone: '⭐ Add Milestone', health: '💊 Add Medicine / Health' };
-  document.getElementById('log-form-title').textContent = labels[type];
-  document.getElementById('log-form-text').value = '';
+  setQuickBtnActive(type);
+  const labels = { meal: '🍽️ Meal / Food', mood: '😊 Mood', packed: '🎒 Packed / Left', milestone: '⭐ Milestone', health: '💊 Medicine / Health' };
+  document.getElementById('log-form-title').textContent = (entryId ? 'Edit: ' : 'Add ') + (labels[type] || type);
+  document.getElementById('log-form-text').value = existingText;
+  document.querySelector('.btn-save').textContent = entryId ? 'Update' : 'Save';
   document.getElementById('log-form').classList.add('open');
   setTimeout(() => document.getElementById('log-form-text').focus(), 100);
 };
 
 window.closeLogForm = function() {
   document.getElementById('log-form').classList.remove('open');
+  setQuickBtnActive(null);
   openLogType = null;
+  editingEntryId = null;
+  document.querySelector('.btn-save').textContent = 'Save';
 };
 
 window.submitLog = async function() {
   const textarea = document.getElementById('log-form-text');
   const text = textarea.value.trim();
   if (!text || !openLogType) return;
+  haptic();
+
+  if (editingEntryId) {
+    const id = editingEntryId;
+    closeLogForm();
+    try {
+      await updateDoc(doc(db, 'log_entries', id), { text, ts: serverTimestamp() });
+      showToast('Updated ✓');
+      if (document.getElementById('tab-log').classList.contains('active')) renderLogFeed(true);
+    } catch(e) {
+      showToast('Error updating');
+    }
+    return;
+  }
+
   const savedType = openLogType;
   textarea.value = '';
   textarea.focus();
@@ -813,6 +864,7 @@ document.addEventListener('click', function(e) {
       const text = input ? input.value.trim() : '';
       if (!text) return;
       const date = action.dataset.date || todayStr();
+      haptic();
       setDoc(doc(db, 'handoff_notes', date), {
         date, text, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp()
       }).then(() => showToast('Handoff note saved ✓')).catch(() => showToast('Could not save note'));
@@ -821,6 +873,7 @@ document.addEventListener('click', function(e) {
       const text = input.value.trim();
       if (!text) return;
       input.value = '';
+      haptic();
       addDoc(collection(db, 'pinned_notes'), { text, author: currentUsername, authorUid: currentUser.uid, ts: serverTimestamp() })
         .then(() => showToast('Note pinned ✓')).catch(() => showToast('Could not pin note'));
     } else if (act === 'install-app') {
@@ -850,6 +903,14 @@ document.addEventListener('click', function(e) {
     } else if (act === 'delete-cancel') {
       closeDeleteModal();
     }
+    return;
+  }
+
+  // Edit entry buttons
+  const editBtn = e.target.closest('[data-edit-id]');
+  if (editBtn) {
+    e.stopPropagation();
+    openLogForm(editBtn.dataset.editType, editBtn.dataset.editId, editBtn.dataset.editText);
     return;
   }
 
@@ -1034,6 +1095,7 @@ window.submitEvent = async function() {
     });
     await batch.commit();
 
+    haptic();
     const labels = { none: 'Note saved ✓', daily: '7 days saved ✓', weekly: '12 weeks saved ✓', biweekly: '13 bi-weekly saved ✓', monthly: '12 months saved ✓', annually: '3 years saved ✓' };
     showToast(labels[repeatVal] || 'Saved ✓');
   } catch(e) {
@@ -1119,12 +1181,13 @@ function renderEntryCard(e, showDelete) {
   const ts = e.ts ? (e.ts.toDate ? e.ts.toDate() : new Date(e.ts.seconds * 1000)) : null;
   const timeStr = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
   const dateTimeStr = ts ? `${formatDate(e.date)} ${timeStr}` : formatDate(e.date);
-  const canDelete = showDelete && e.author === currentUsername;
+  const isOwn = showDelete && e.author === currentUsername;
   return `<div class="entry-card">
     <div class="entry-header">
       <span class="entry-type-badge ${meta.badge}">${meta.icon} ${meta.label}</span>
       <span class="entry-author author-${e.author}">${displayName(e.author)}</span>
-      ${canDelete ? `<button type="button" class="btn-delete" data-del-id="${e.id}" data-del-col="log_entries">✕</button>` : ''}
+      ${isOwn ? `<button type="button" class="btn-edit" data-edit-id="${e.id}" data-edit-type="${e.type}" data-edit-text="${escHtml(e.text)}">✏️</button>` : ''}
+      ${isOwn ? `<button type="button" class="btn-delete" data-del-id="${e.id}" data-del-col="log_entries">✕</button>` : ''}
     </div>
     <div class="entry-text">${escHtml(e.text)}</div>
     <div class="entry-time">${dateTimeStr}</div>
