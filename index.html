@@ -89,19 +89,21 @@
   .btn-cancel { background: none; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: .95rem; cursor: pointer; color: var(--muted); }
 
   /* ── Entry cards ── */
-  .entry-card { background: var(--surface); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); }
+  .entry-card { background: var(--surface); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
   .entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
   .entry-type-badge { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
   .badge-meal { background: #fef3c7; color: #92400e; }
   .badge-mood { background: #ede9fe; color: #6d28d9; }
   .badge-packed { background: #d1fae5; color: #065f46; }
   .badge-milestone { background: #fce7f3; color: #9d174d; }
-  .entry-author { margin-left: auto; font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .entry-author { font-size: .75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
   .author-scott { background: var(--scott-light); color: var(--scott); }
   .author-mom { background: var(--mom-light); color: var(--mom); }
   .entry-text { font-size: .95rem; line-height: 1.5; color: var(--text); }
   .entry-time { font-size: .75rem; color: var(--muted); margin-top: 4px; }
   .empty-state { text-align: center; color: var(--muted); padding: 32px 16px; font-size: .95rem; }
+  .btn-delete { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .8rem; padding: 2px 6px; border-radius: 4px; margin-left: auto; opacity: .6; }
+  .btn-delete:hover { opacity: 1; color: var(--mom); }
 
   /* ── Calendar view ── */
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -166,13 +168,13 @@
 <!-- Auth -->
 <div id="auth-screen">
   <h1>🌿 Cole & Co</h1>
-  <p class="sub">Co-parenting made easy</p>
+  <p class="sub">Co-co parenting made easy</p>
   <div class="auth-card">
     <label for="auth-email">Email</label>
     <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com">
     <label for="auth-password">Password</label>
     <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••">
-    <button class="btn-primary" id="btn-login">Sign In</button>
+    <button type="button" class="btn-primary" id="btn-login">Sign In</button>
     <div id="auth-error"></div>
   </div>
 </div>
@@ -183,7 +185,7 @@
     <h1>🌿 Cole & Co</h1>
     <div style="display:flex;align-items:center;gap:8px;">
       <span id="topbar-user"></span>
-      <button id="btn-logout">Sign out</button>
+      <button type="button" id="btn-logout">Sign out</button>
     </div>
   </div>
 
@@ -197,18 +199,18 @@
 
       <div class="section-title">Quick add</div>
       <div class="quick-add-row">
-        <button class="quick-btn" onclick="openLogForm('meal')"><span class="icon">🍽️</span> Meal / Food</button>
-        <button class="quick-btn" onclick="openLogForm('mood')"><span class="icon">😊</span> Mood</button>
-        <button class="quick-btn" onclick="openLogForm('packed')"><span class="icon">🎒</span> Packed / Left</button>
-        <button class="quick-btn" onclick="openLogForm('milestone')"><span class="icon">⭐</span> Milestone</button>
+        <button type="button" class="quick-btn" onclick="openLogForm('meal')"><span class="icon">🍽️</span> Meal / Food</button>
+        <button type="button" class="quick-btn" onclick="openLogForm('mood')"><span class="icon">😊</span> Mood</button>
+        <button type="button" class="quick-btn" onclick="openLogForm('packed')"><span class="icon">🎒</span> Packed / Left</button>
+        <button type="button" class="quick-btn" onclick="openLogForm('milestone')"><span class="icon">⭐</span> Milestone</button>
       </div>
 
       <div class="log-form" id="log-form">
         <h3 id="log-form-title">Add entry</h3>
         <textarea id="log-form-text" placeholder="What happened?"></textarea>
         <div class="form-row">
-          <button class="btn-cancel" onclick="closeLogForm()">Cancel</button>
-          <button class="btn-save" onclick="submitLog()">Save</button>
+          <button type="button" class="btn-cancel" onclick="closeLogForm()">Cancel</button>
+          <button type="button" class="btn-save" onclick="submitLog()">Save</button>
         </div>
       </div>
 
@@ -219,9 +221,9 @@
     <!-- Calendar view -->
     <div class="view" id="view-calendar">
       <div class="cal-nav">
-        <button class="cal-arrow" onclick="calMove(-1)">‹</button>
+        <button type="button" class="cal-arrow" onclick="calMove(-1)">‹</button>
         <h2 id="cal-month-label"></h2>
-        <button class="cal-arrow" onclick="calMove(1)">›</button>
+        <button type="button" class="cal-arrow" onclick="calMove(1)">›</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
     </div>
@@ -229,27 +231,27 @@
     <!-- Log view -->
     <div class="view" id="view-log">
       <div class="filter-chips">
-        <button class="chip active" data-type="all" onclick="setFilter('all',this)">All</button>
-        <button class="chip" data-type="meal" onclick="setFilter('meal',this)">🍽️ Meals</button>
-        <button class="chip" data-type="mood" onclick="setFilter('mood',this)">😊 Mood</button>
-        <button class="chip" data-type="packed" onclick="setFilter('packed',this)">🎒 Packed</button>
-        <button class="chip" data-type="milestone" onclick="setFilter('milestone',this)">⭐ Milestones</button>
+        <button type="button" class="chip active" data-type="all" onclick="setFilter('all',this)">All</button>
+        <button type="button" class="chip" data-type="meal" onclick="setFilter('meal',this)">🍽️ Meals</button>
+        <button type="button" class="chip" data-type="mood" onclick="setFilter('mood',this)">😊 Mood</button>
+        <button type="button" class="chip" data-type="packed" onclick="setFilter('packed',this)">🎒 Packed</button>
+        <button type="button" class="chip" data-type="milestone" onclick="setFilter('milestone',this)">⭐ Milestones</button>
       </div>
       <div id="log-entries"></div>
-      <button class="load-more" id="btn-load-more" onclick="loadMoreLog()" style="display:none">Load more</button>
+      <button type="button" class="load-more" id="btn-load-more" onclick="loadMoreLog()" style="display:none">Load more</button>
     </div>
   </div>
 
   <nav id="tabbar">
-    <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">
+    <button type="button" class="tab-btn active" id="tab-today" onclick="switchTab('today')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Today
     </button>
-    <button class="tab-btn" id="tab-calendar" onclick="switchTab('calendar')">
+    <button type="button" class="tab-btn" id="tab-calendar" onclick="switchTab('calendar')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Calendar
     </button>
-    <button class="tab-btn" id="tab-log" onclick="switchTab('log')">
+    <button type="button" class="tab-btn" id="tab-log" onclick="switchTab('log')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       Log
     </button>
@@ -266,8 +268,8 @@
     <div class="section-title" style="margin-bottom:8px">Add calendar note</div>
     <input type="text" id="event-title-input" placeholder="e.g. Doctor appointment 2pm">
     <div class="form-row">
-      <button class="btn-cancel" onclick="closeDayPanel()">Cancel</button>
-      <button class="btn-save" onclick="submitEvent()">Save</button>
+      <button type="button" class="btn-cancel" onclick="closeDayPanel()">Cancel</button>
+      <button type="button" class="btn-save" onclick="submitEvent()">Save</button>
     </div>
   </div>
 </div>
@@ -279,8 +281,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, addDoc, query, where, orderBy, limit,
-  getDocs, onSnapshot, startAfter, Timestamp, serverTimestamp }
+import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, limit,
+  getDocs, onSnapshot, startAfter, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -291,14 +293,13 @@ const firebaseConfig = {
   messagingSenderId: "478137344084",
   appId: "1:478137344084:web:a444b2249c1ccccbbdcdc1"
 };
-// ─────────────────────────────────────────────────
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ── Schedule logic ──
-const ANCHOR = new Date('2026-04-14T00:00:00');
+// ── Schedule logic — anchor April 13 2026 (Monday) ──
+const ANCHOR = new Date('2026-04-13T00:00:00');
 const PATTERN = [
   ['scott','scott','mom','mom','scott','scott','scott'],
   ['mom','mom','scott','scott','mom','mom','mom']
@@ -308,17 +309,15 @@ function custodianForDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   const daysDiff = Math.round((d - ANCHOR) / 86400000);
   const idx = ((daysDiff % 14) + 14) % 14;
-  const week = Math.floor(idx / 7);
-  const dow = idx % 7;
-  return PATTERN[week][dow];
+  return PATTERN[Math.floor(idx / 7)][idx % 7];
+}
+
+function displayName(who) {
+  return who === 'scott' ? 'Dad' : 'Mom';
 }
 
 function todayStr() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function dateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
@@ -331,7 +330,6 @@ let logEntriesCache = [];
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let calEventDates = new Set();
-let calDayUnsubscribe = null;
 let todayUnsubscribe = null;
 let openLogType = null;
 let selectedDate = null;
@@ -360,7 +358,7 @@ onAuthStateChanged(auth, user => {
     currentUsername = user.email.toLowerCase().includes('andrewscottholbrook') ? 'scott' : 'mom';
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    document.getElementById('topbar-user').textContent = currentUsername === 'scott' ? 'Scott' : 'Mom';
+    document.getElementById('topbar-user').textContent = displayName(currentUsername);
     initApp();
   } else {
     currentUser = null;
@@ -370,7 +368,6 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// ── Init ──
 function initApp() {
   renderToday();
   renderCalendar();
@@ -402,27 +399,21 @@ function renderToday() {
   const today = todayStr();
   const cust = custodianForDate(today);
   const banner = document.getElementById('today-banner');
-  const name = document.getElementById('today-custodian-name');
   banner.className = `custodian-banner ${cust}`;
-  name.textContent = cust === 'scott' ? 'Scott' : 'Mom';
-
-  const label = document.getElementById('today-entries-label');
-  label.textContent = `Today's log — ${formatDate(today)}`;
+  document.getElementById('today-custodian-name').textContent = displayName(cust);
+  document.getElementById('today-entries-label').textContent = `Today's log — ${formatDate(today)}`;
 
   if (todayUnsubscribe) todayUnsubscribe();
-  const q = query(
-    collection(db, 'log_entries'),
-    where('date', '==', today),
-    orderBy('ts', 'asc')
-  );
+  // Query without orderBy to avoid needing composite index; sort client-side
+  const q = query(collection(db, 'log_entries'), where('date', '==', today));
   todayUnsubscribe = onSnapshot(q, snap => {
-    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const entries = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.ts?.seconds || 0) - (b.ts?.seconds || 0));
     const container = document.getElementById('today-entries');
-    if (entries.length === 0) {
-      container.innerHTML = '<div class="empty-state">No entries yet today</div>';
-    } else {
-      container.innerHTML = entries.map(renderEntryCard).join('');
-    }
+    container.innerHTML = entries.length === 0
+      ? '<div class="empty-state">No entries yet today</div>'
+      : entries.map(e => renderEntryCard(e, true)).join('');
   });
 }
 
@@ -432,7 +423,7 @@ window.openLogForm = function(type) {
   document.getElementById('log-form-title').textContent = labels[type];
   document.getElementById('log-form-text').value = '';
   document.getElementById('log-form').classList.add('open');
-  setTimeout(() => document.getElementById('log-form-text').focus(), 50);
+  setTimeout(() => document.getElementById('log-form-text').focus(), 100);
 };
 
 window.closeLogForm = function() {
@@ -442,73 +433,78 @@ window.closeLogForm = function() {
 
 window.submitLog = async function() {
   const text = document.getElementById('log-form-text').value.trim();
-  if (!text) return;
-  await addDoc(collection(db, 'log_entries'), {
-    date: todayStr(),
-    type: openLogType,
-    text,
-    author: currentUsername,
-    ts: serverTimestamp()
-  });
-  closeLogForm();
-  showToast('Saved ✓');
+  if (!text || !openLogType) return;
+  try {
+    await addDoc(collection(db, 'log_entries'), {
+      date: todayStr(),
+      type: openLogType,
+      text,
+      author: currentUsername,
+      ts: serverTimestamp()
+    });
+    closeLogForm();
+    showToast('Saved ✓');
+  } catch(e) {
+    showToast('Error saving — try again');
+  }
+};
+
+// ── Delete entry ──
+window.deleteEntry = async function(id, collection_name) {
+  if (!confirm('Remove this entry?')) return;
+  try {
+    await deleteDoc(doc(db, collection_name, id));
+    showToast('Removed');
+  } catch(e) {
+    showToast('Could not remove');
+  }
 };
 
 // ────────────────────────────────────────
 // CALENDAR VIEW
 // ────────────────────────────────────────
 function renderCalendar() {
-  const label = document.getElementById('cal-month-label');
   const d = new Date(calYear, calMonth, 1);
-  label.textContent = d.toLocaleString('default', { month: 'long', year: 'numeric' });
-
+  document.getElementById('cal-month-label').textContent = d.toLocaleString('default', { month: 'long', year: 'numeric' });
   loadCalendarEvents().then(() => buildCalGrid());
 }
 
 async function loadCalendarEvents() {
   const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
-  const q = query(
-    collection(db, 'calendar_events'),
-    where('date', '>=', monthStr + '-01'),
-    where('date', '<=', monthStr + '-31')
-  );
-  const snap = await getDocs(q);
-  calEventDates = new Set(snap.docs.map(d => d.data().date));
-
-  const q2 = query(
-    collection(db, 'log_entries'),
-    where('date', '>=', monthStr + '-01'),
-    where('date', '<=', monthStr + '-31')
-  );
-  const snap2 = await getDocs(q2);
-  snap2.docs.forEach(d => calEventDates.add(d.data().date));
+  try {
+    const [evSnap, logSnap] = await Promise.all([
+      getDocs(query(collection(db, 'calendar_events'), where('date', '>=', monthStr + '-01'), where('date', '<=', monthStr + '-31'))),
+      getDocs(query(collection(db, 'log_entries'), where('date', '>=', monthStr + '-01'), where('date', '<=', monthStr + '-31')))
+    ]);
+    calEventDates = new Set([
+      ...evSnap.docs.map(d => d.data().date),
+      ...logSnap.docs.map(d => d.data().date)
+    ]);
+  } catch(e) {
+    calEventDates = new Set();
+  }
 }
 
 function buildCalGrid() {
-  const grid = document.getElementById('cal-grid');
   const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
 
   const firstDay = new Date(calYear, calMonth, 1);
-  let startDow = firstDay.getDay(); // 0=Sun
-  startDow = startDow === 0 ? 6 : startDow - 1; // convert to 0=Mon
+  let startDow = firstDay.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1;
 
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const todayDs = todayStr();
 
   for (let i = 0; i < startDow; i++) html += '<div class="cal-day empty"></div>';
-
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const cust = custodianForDate(ds);
-    const isToday = ds === todayDs;
-    const hasEv = calEventDates.has(ds);
-    html += `<div class="cal-day${isToday ? ' today' : ''}${hasEv ? ' has-events' : ''}" onclick="openDayPanel('${ds}')">
+    html += `<div class="cal-day${ds === todayDs ? ' today' : ''}${calEventDates.has(ds) ? ' has-events' : ''}" onclick="openDayPanel('${ds}')">
       ${day}<div class="cust-dot ${cust}"></div>
     </div>`;
   }
-
-  grid.innerHTML = html;
+  document.getElementById('cal-grid').innerHTML = html;
 }
 
 window.calMove = function(dir) {
@@ -524,33 +520,43 @@ window.openDayPanel = async function(ds) {
   document.getElementById('day-panel-date').textContent = formatDate(ds);
   const cust = custodianForDate(ds);
   const custEl = document.getElementById('day-panel-cust');
-  custEl.textContent = `Cole is with ${cust === 'scott' ? 'Scott' : 'Mom'}`;
+  custEl.textContent = `Cole is with ${displayName(cust)}`;
   custEl.className = `cust-label ${cust}`;
   document.getElementById('event-title-input').value = '';
-
   document.getElementById('day-panel-entries').innerHTML = '<div class="spinner"></div>';
   document.getElementById('day-panel').classList.add('open');
   document.getElementById('day-panel-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  const [logsSnap, eventsSnap] = await Promise.all([
-    getDocs(query(collection(db,'log_entries'), where('date','==',ds), orderBy('ts','asc'))),
-    getDocs(query(collection(db,'calendar_events'), where('date','==',ds), orderBy('ts','asc')))
-  ]);
+  try {
+    const [logsSnap, eventsSnap] = await Promise.all([
+      getDocs(query(collection(db,'log_entries'), where('date','==',ds))),
+      getDocs(query(collection(db,'calendar_events'), where('date','==',ds)))
+    ]);
 
-  let html = '';
-  eventsSnap.docs.forEach(d => {
-    const ev = d.data();
-    html += `<div class="entry-card"><div class="entry-header">
-      <span class="entry-type-badge badge-milestone">📅 Event</span>
-      <span class="entry-author author-${ev.author}">${ev.author === 'scott' ? 'Scott' : 'Mom'}</span>
-    </div><div class="entry-text">${escHtml(ev.title)}</div></div>`;
-  });
-  logsSnap.docs.forEach(d => {
-    html += renderEntryCard({ id: d.id, ...d.data() });
-  });
-  if (!html) html = '<div class="empty-state" style="padding:16px 0">Nothing logged for this day</div>';
-  document.getElementById('day-panel-entries').innerHTML = html;
+    const logs = logsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (a.ts?.seconds||0) - (b.ts?.seconds||0));
+
+    const events = eventsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (a.ts?.seconds||0) - (b.ts?.seconds||0));
+
+    let html = '';
+    events.forEach(ev => {
+      const canDelete = ev.author === currentUsername;
+      html += `<div class="entry-card"><div class="entry-header">
+        <span class="entry-type-badge badge-milestone">📅 Event</span>
+        <span class="entry-author author-${ev.author}">${displayName(ev.author)}</span>
+        ${canDelete ? `<button type="button" class="btn-delete" onclick="deleteEntry('${ev.id}','calendar_events')">✕</button>` : ''}
+      </div><div class="entry-text">${escHtml(ev.title)}</div></div>`;
+    });
+    logs.forEach(e => { html += renderEntryCard(e, false); });
+    if (!html) html = '<div class="empty-state" style="padding:16px 0">Nothing logged for this day</div>';
+    document.getElementById('day-panel-entries').innerHTML = html;
+  } catch(e) {
+    document.getElementById('day-panel-entries').innerHTML = '<div class="empty-state">Could not load entries</div>';
+  }
 };
 
 window.closeDayPanel = function() {
@@ -562,14 +568,19 @@ window.closeDayPanel = function() {
 
 window.submitEvent = async function() {
   const title = document.getElementById('event-title-input').value.trim();
-  if (!title || !selectedDate) return;
-  await addDoc(collection(db, 'calendar_events'), {
-    date: selectedDate, title, author: currentUsername, ts: serverTimestamp()
-  });
-  calEventDates.add(selectedDate);
-  buildCalGrid();
-  closeDayPanel();
-  showToast('Event saved ✓');
+  if (!title) return;
+  if (!selectedDate) { showToast('No date selected'); return; }
+  try {
+    await addDoc(collection(db, 'calendar_events'), {
+      date: selectedDate, title, author: currentUsername, ts: serverTimestamp()
+    });
+    calEventDates.add(selectedDate);
+    buildCalGrid();
+    closeDayPanel();
+    showToast('Note saved ✓');
+  } catch(e) {
+    showToast('Error saving note');
+  }
 };
 
 // ────────────────────────────────────────
@@ -577,26 +588,28 @@ window.submitEvent = async function() {
 // ────────────────────────────────────────
 async function renderLogFeed(reset = false) {
   if (reset) { logLastDoc = null; logEntriesCache = []; }
-
   const container = document.getElementById('log-entries');
   if (reset) container.innerHTML = '<div class="spinner" style="margin:32px auto;display:block"></div>';
 
-  let q = query(collection(db,'log_entries'), orderBy('ts','desc'), limit(20));
-  if (logFilter !== 'all') q = query(collection(db,'log_entries'), where('type','==',logFilter), orderBy('ts','desc'), limit(20));
-  if (logLastDoc) q = query(collection(db,'log_entries'), ...(logFilter !== 'all' ? [where('type','==',logFilter)] : []), orderBy('ts','desc'), startAfter(logLastDoc), limit(20));
-
-  const snap = await getDocs(q);
-  const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  logLastDoc = snap.docs[snap.docs.length - 1] || null;
-  if (reset) logEntriesCache = entries;
-  else logEntriesCache = [...logEntriesCache, ...entries];
-
-  if (logEntriesCache.length === 0) {
-    container.innerHTML = '<div class="empty-state">No entries yet</div>';
-  } else {
-    container.innerHTML = logEntriesCache.map(renderEntryCard).join('');
+  try {
+    let q = query(collection(db,'log_entries'), orderBy('ts','desc'), limit(20));
+    if (logFilter !== 'all') q = query(collection(db,'log_entries'), where('type','==',logFilter), orderBy('ts','desc'), limit(20));
+    if (logLastDoc) {
+      q = logFilter !== 'all'
+        ? query(collection(db,'log_entries'), where('type','==',logFilter), orderBy('ts','desc'), startAfter(logLastDoc), limit(20))
+        : query(collection(db,'log_entries'), orderBy('ts','desc'), startAfter(logLastDoc), limit(20));
+    }
+    const snap = await getDocs(q);
+    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    logLastDoc = snap.docs[snap.docs.length - 1] || null;
+    logEntriesCache = reset ? entries : [...logEntriesCache, ...entries];
+    container.innerHTML = logEntriesCache.length === 0
+      ? '<div class="empty-state">No entries yet</div>'
+      : logEntriesCache.map(e => renderEntryCard(e, false)).join('');
+    document.getElementById('btn-load-more').style.display = snap.docs.length === 20 ? 'block' : 'none';
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">Could not load entries</div>';
   }
-  document.getElementById('btn-load-more').style.display = snap.docs.length === 20 ? 'block' : 'none';
 }
 
 window.setFilter = function(type, btn) {
@@ -618,15 +631,17 @@ const TYPE_META = {
   milestone: { badge: 'badge-milestone', icon: '⭐', label: 'Milestone' },
 };
 
-function renderEntryCard(e) {
+function renderEntryCard(e, showDelete) {
   const meta = TYPE_META[e.type] || { badge: 'badge-meal', icon: '📝', label: e.type };
   const ts = e.ts ? (e.ts.toDate ? e.ts.toDate() : new Date(e.ts.seconds * 1000)) : null;
   const timeStr = ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
   const dateTimeStr = ts ? `${formatDate(e.date)} ${timeStr}` : formatDate(e.date);
+  const canDelete = showDelete && e.author === currentUsername;
   return `<div class="entry-card">
     <div class="entry-header">
       <span class="entry-type-badge ${meta.badge}">${meta.icon} ${meta.label}</span>
-      <span class="entry-author author-${e.author}">${e.author === 'scott' ? 'Scott' : 'Mom'}</span>
+      <span class="entry-author author-${e.author}">${displayName(e.author)}</span>
+      ${canDelete ? `<button type="button" class="btn-delete" onclick="deleteEntry('${e.id}','log_entries')">✕</button>` : ''}
     </div>
     <div class="entry-text">${escHtml(e.text)}</div>
     <div class="entry-time">${dateTimeStr}</div>
