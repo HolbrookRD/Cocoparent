@@ -331,9 +331,9 @@
   <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;">
     <p style="font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Remove event</p>
     <p style="font-size:1rem;font-weight:600;margin-bottom:20px" id="delete-modal-title"></p>
-    <button onclick="confirmDeleteOne()" style="width:100%;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:10px;color:#1e293b">Remove this date only</button>
-    <button onclick="confirmDeleteAll()" style="width:100%;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:10px;color:#b91c1c">Remove all recurring dates</button>
-    <button onclick="closeDeleteModal()" style="width:100%;background:none;border:none;padding:10px;font-size:.9rem;color:#64748b;cursor:pointer">Cancel</button>
+    <button data-action="delete-one" style="width:100%;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:10px;color:#1e293b">Remove this date only</button>
+    <button data-action="delete-all" style="width:100%;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:10px;padding:13px;font-size:.95rem;font-weight:600;cursor:pointer;margin-bottom:10px;color:#b91c1c">Remove all recurring dates</button>
+    <button data-action="delete-cancel" style="width:100%;background:none;border:none;padding:10px;font-size:.9rem;color:#64748b;cursor:pointer">Cancel</button>
   </div>
 </div>
 
@@ -630,6 +630,35 @@ function findSiblingEventIds(title, author) {
 }
 
 document.addEventListener('click', function(e) {
+  // Modal action buttons
+  const action = e.target.closest('[data-action]');
+  if (action) {
+    e.stopPropagation();
+    const act = action.dataset.action;
+    if (act === 'delete-one') {
+      const pd = pendingDelete;
+      closeDeleteModal();
+      if (!pd) return;
+      if (pd.card) pd.card.remove();
+      deleteEntry(pd.id, pd.col);
+    } else if (act === 'delete-all') {
+      const pd = pendingDelete;
+      closeDeleteModal();
+      if (!pd) return;
+      const batch = writeBatch(db);
+      pd.allIds.forEach(eid => batch.delete(doc(db, 'calendar_events', eid)));
+      batch.commit().then(() => {
+        showToast(`Removed ${pd.allIds.length} events ✓`);
+        const panel = document.getElementById('day-panel');
+        if (selectedDate && panel.classList.contains('open')) openDayPanel(selectedDate);
+      }).catch(() => showToast('Could not remove all'));
+    } else if (act === 'delete-cancel') {
+      closeDeleteModal();
+    }
+    return;
+  }
+
+  // Delete entry buttons
   const btn = e.target.closest('[data-del-id]');
   if (btn) {
     e.stopPropagation();
@@ -655,30 +684,6 @@ document.addEventListener('click', function(e) {
     }
   }
 });
-
-window.confirmDeleteOne = async function() {
-  const pd = pendingDelete;
-  closeDeleteModal();
-  if (!pd) return;
-  if (pd.card) pd.card.remove();
-  deleteEntry(pd.id, pd.col);
-};
-
-window.confirmDeleteAll = async function() {
-  const pd = pendingDelete;
-  closeDeleteModal();
-  if (!pd) return;
-  try {
-    const batch = writeBatch(db);
-    pd.allIds.forEach(eid => batch.delete(doc(db, 'calendar_events', eid)));
-    await batch.commit();
-    showToast(`Removed ${pd.allIds.length} events ✓`);
-    const panel = document.getElementById('day-panel');
-    if (selectedDate && panel.classList.contains('open')) openDayPanel(selectedDate);
-  } catch(e) {
-    showToast('Could not remove all');
-  }
-};
 
 window.closeDeleteModal = function() {
   document.getElementById('delete-modal').style.display = 'none';
