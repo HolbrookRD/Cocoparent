@@ -441,24 +441,20 @@ window.submitLog = async function() {
   const textarea = document.getElementById('log-form-text');
   const text = textarea.value.trim();
   if (!text || !openLogType) return;
-  const btn = document.querySelector('#log-form .btn-save');
-  btn.disabled = true;
-  textarea.value = '';
+  const savedType = openLogType;
+  closeLogForm();
   try {
     await addDoc(collection(db, 'log_entries'), {
       date: todayStr(),
-      type: openLogType,
+      type: savedType,
       text,
       author: currentUsername,
       ts: serverTimestamp()
     });
-    closeLogForm();
     showToast('Saved ✓');
   } catch(e) {
-    textarea.value = text;
     showToast('Error saving — try again');
   }
-  btn.disabled = false;
 };
 
 // ── Delete entry ──
@@ -568,7 +564,7 @@ window.openDayPanel = async function(ds) {
         ${canDelete ? `<button type="button" class="btn-delete" onclick="deleteEntry('${ev.id}','calendar_events')">✕</button>` : ''}
       </div><div class="entry-text">${escHtml(ev.title)}</div></div>`;
     });
-    logs.forEach(e => { html += renderEntryCard(e, false); });
+    logs.forEach(e => { html += renderEntryCard(e, true); });
     if (!html) html = '<div class="empty-state" style="padding:16px 0">Nothing logged for this day</div>';
     document.getElementById('day-panel-entries').innerHTML = html;
   } catch(e) {
@@ -587,13 +583,14 @@ window.submitEvent = async function() {
   const title = document.getElementById('event-title-input').value.trim();
   if (!title) return;
   if (!selectedDate) { showToast('No date selected'); return; }
+  const savedDate = selectedDate;
+  closeDayPanel();
   try {
     await addDoc(collection(db, 'calendar_events'), {
-      date: selectedDate, title, author: currentUsername, ts: serverTimestamp()
+      date: savedDate, title, author: currentUsername, ts: serverTimestamp()
     });
-    calEventDates.add(selectedDate);
+    calEventDates.add(savedDate);
     buildCalGrid();
-    closeDayPanel();
     showToast('Note saved ✓');
   } catch(e) {
     showToast('Error saving note');
