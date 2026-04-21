@@ -532,6 +532,14 @@ document.getElementById('pin-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.querySelector('[data-action="pin-add"]').click();
 });
 
+document.getElementById('log-form-text').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.submitLog(); }
+});
+
+document.getElementById('event-title-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); window.submitEvent(); }
+});
+
 document.getElementById('btn-forgot').addEventListener('click', async () => {
   const email = document.getElementById('auth-email').value.trim();
   const errEl = document.getElementById('auth-error');
