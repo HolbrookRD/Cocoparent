@@ -344,7 +344,8 @@ let logLastDoc = null;
 let logEntriesCache = [];
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
-let calEventDates = new Set();
+let calEventDates = new Map();
+let calUnsubscribe = null;
 let todayUnsubscribe = null;
 let openLogType = null;
 let selectedDate = null;
@@ -380,12 +381,27 @@ onAuthStateChanged(auth, user => {
     document.getElementById('auth-screen').style.display = 'flex';
     document.getElementById('app').classList.remove('visible');
     if (todayUnsubscribe) { todayUnsubscribe(); todayUnsubscribe = null; }
+    if (calUnsubscribe) { calUnsubscribe(); calUnsubscribe = null; }
   }
 });
 
 function initApp() {
   renderToday();
+  subscribeCalendarEvents();
   renderCalendar();
+}
+
+function subscribeCalendarEvents() {
+  if (calUnsubscribe) calUnsubscribe();
+  calUnsubscribe = onSnapshot(collection(db, 'calendar_events'), snap => {
+    calEventDates = new Map();
+    snap.docs.forEach(d => {
+      const { date, title } = d.data();
+      if (!calEventDates.has(date)) calEventDates.set(date, []);
+      calEventDates.get(date).push(title);
+    });
+    buildCalGrid();
+  }, () => { calEventDates = new Map(); });
 }
 
 // ── Tab switching ──
@@ -499,21 +515,7 @@ document.addEventListener('click', function(e) {
 function renderCalendar() {
   const d = new Date(calYear, calMonth, 1);
   document.getElementById('cal-month-label').textContent = d.toLocaleString('default', { month: 'long', year: 'numeric' });
-  loadCalendarEvents().then(() => buildCalGrid());
-}
-
-async function loadCalendarEvents() {
-  try {
-    const evSnap = await getDocs(collection(db, 'calendar_events'));
-    calEventDates = new Map();
-    evSnap.docs.forEach(d => {
-      const { date, title } = d.data();
-      if (!calEventDates.has(date)) calEventDates.set(date, []);
-      calEventDates.get(date).push(title);
-    });
-  } catch(e) {
-    calEventDates = new Map();
-  }
+  buildCalGrid();
 }
 
 function buildCalGrid() {
@@ -612,9 +614,6 @@ window.submitEvent = async function() {
     await addDoc(collection(db, 'calendar_events'), {
       date: savedDate, title, author: currentUsername, ts: serverTimestamp()
     });
-    if (!calEventDates.has(savedDate)) calEventDates.set(savedDate, []);
-    calEventDates.get(savedDate).push(title);
-    buildCalGrid();
     showToast('Note saved ✓');
   } catch(e) {
     showToast('Error saving note');
