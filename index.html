@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Cole & Co</title>
+<title>Cole Holbrook</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -167,7 +167,7 @@
 
 <!-- Auth -->
 <div id="auth-screen">
-  <h1>🌿 Cole & Co</h1>
+  <h1>🌿 Cole Holbrook</h1>
   <p class="sub">Co-co parenting made easy</p>
   <div class="auth-card">
     <label for="auth-email">Email</label>
@@ -182,7 +182,7 @@
 <!-- App -->
 <div id="app">
   <div id="topbar">
-    <h1>🌿 Cole & Co</h1>
+    <h1>🌿 Cole Holbrook</h1>
     <div style="display:flex;align-items:center;gap:8px;">
       <span id="topbar-user"></span>
       <button type="button" id="btn-logout">Sign out</button>
@@ -316,6 +316,12 @@ function displayName(who) {
   return who === 'scott' ? 'Dad' : 'Mom';
 }
 
+function userName(email) {
+  if (email.toLowerCase().includes('andrewscottholbrook')) return 'Scott';
+  if (email.toLowerCase().includes('dpgdesign94')) return 'Daniela';
+  return email.split('@')[0];
+}
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -358,7 +364,7 @@ onAuthStateChanged(auth, user => {
     currentUsername = user.email.toLowerCase().includes('andrewscottholbrook') ? 'scott' : 'mom';
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    document.getElementById('topbar-user').textContent = displayName(currentUsername);
+    document.getElementById('topbar-user').textContent = userName(user.email);
     initApp();
   } else {
     currentUser = null;
@@ -432,8 +438,12 @@ window.closeLogForm = function() {
 };
 
 window.submitLog = async function() {
-  const text = document.getElementById('log-form-text').value.trim();
+  const textarea = document.getElementById('log-form-text');
+  const text = textarea.value.trim();
   if (!text || !openLogType) return;
+  const btn = document.querySelector('#log-form .btn-save');
+  btn.disabled = true;
+  textarea.value = '';
   try {
     await addDoc(collection(db, 'log_entries'), {
       date: todayStr(),
@@ -445,16 +455,23 @@ window.submitLog = async function() {
     closeLogForm();
     showToast('Saved ✓');
   } catch(e) {
+    textarea.value = text;
     showToast('Error saving — try again');
   }
+  btn.disabled = false;
 };
 
 // ── Delete entry ──
-window.deleteEntry = async function(id, collection_name) {
-  if (!confirm('Remove this entry?')) return;
+window.deleteEntry = async function(id, collName) {
   try {
-    await deleteDoc(doc(db, collection_name, id));
+    await deleteDoc(doc(db, collName, id));
     showToast('Removed');
+    const panel = document.getElementById('day-panel');
+    if (selectedDate && panel.classList.contains('open')) {
+      openDayPanel(selectedDate);
+    } else if (document.getElementById('tab-log').classList.contains('active')) {
+      renderLogFeed(true);
+    }
   } catch(e) {
     showToast('Could not remove');
   }
